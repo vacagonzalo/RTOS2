@@ -19,6 +19,8 @@
 
 /*=====[Definition macros of private constants]==============================*/
 
+#define UARTS_TO_USE 1
+
 /*=====[Definitions of extern global variables]==============================*/
 
 /*=====[Definitions of public global variables]==============================*/
@@ -31,7 +33,7 @@ int main(void)
 {
    boardInit();
 
-   C1_init();
+   C1_init(UARTS_TO_USE);
 
    BaseType_t res;
 

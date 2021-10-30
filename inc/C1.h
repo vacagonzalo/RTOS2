@@ -14,34 +14,24 @@
 
 /*=====[Inclusions of public function dependencies]==========================*/
 
-#include <stdint.h>
-#include <stddef.h>
-
-#include "sapi.h"
-#include "FreeRTOS.h"
-#include "FreeRTOSConfig.h"
-#include "task.h"
-
 /*=====[C++ - begin]=========================================================*/
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
+#include <inttypes.h>
+    /*=====[Definition macros of public constants]===============================*/
+    /*=====[Public function-like macros]=========================================*/
 
-/*=====[Definition macros of public constants]===============================*/
-/*=====[Public function-like macros]=========================================*/
+    /*=====[Definitions of public data types]====================================*/
+    /*=====[Prototypes (declarations) of public functions]=======================*/
 
-/*=====[Definitions of public data types]====================================*/
+    void C1_init(uint8_t count);
 
-/*=====[Prototypes (declarations) of public functions]=======================*/
+    /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 
-void C1_init( void );
-
-void onRx( void *noUsado );
-
-/*=====[Prototypes (declarations) of public interrupt functions]=============*/
-
-/*=====[C++ - end]===========================================================*/
+    /*=====[C++ - end]===========================================================*/
 
 #ifdef __cplusplus
 }
