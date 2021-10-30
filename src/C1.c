@@ -1,6 +1,8 @@
 #include "C1.h"
 #include <stdint.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "sapi.h"
 #include "FreeRTOS.h"
@@ -18,8 +20,7 @@ typedef enum
 {
 	C1_IDLE,
 	C1_TRANSITION,
-	C1_ACQUIRING,
-	C1_SENDDING
+	C1_ACQUIRING
 } C1_states_t;
 
 typedef struct
@@ -55,9 +56,9 @@ void C1_init(uint8_t count)
 		uartInterrupt(UART_USB, true);
 	}
 
-	// Crear cola para impresion de puntaje
-    queueRecievedChar = xQueueCreate(RECIEVED_CHAR_QUEUE_SIZE, sizeof(uint8_t));
-    configASSERT(queueRecievedChar != NULL);
+	// Crear cola para recepcion de caracteres
+	queueRecievedChar = xQueueCreate(RECIEVED_CHAR_QUEUE_SIZE, sizeof(uint8_t));
+	configASSERT(queueRecievedChar != NULL);
 
 	C1_FSM.state = C1_IDLE;
 	C1_FSM.countChars = 0;
@@ -68,7 +69,7 @@ void C1_init(uint8_t count)
 	res = xTaskCreate(
 		C1_task,					  // Function that implements the task.
 		(const char *)"C1_task",	  // Text name for the task.
-		configMINIMAL_STACK_SIZE * 2, // Stack size in words, not bytes.
+		configMINIMAL_STACK_SIZE * 4, // Stack size in words, not bytes.
 		0,							  // Parameter passed into the task.
 		tskIDLE_PRIORITY + 1,		  // Priority at which the task is created.
 		0							  // Pointer to the task created in the system
@@ -78,27 +79,15 @@ void C1_init(uint8_t count)
 
 void onRx(void *noUsado)
 {
-	static BaseType_t xHigherPriorityTaskWoken = pdFALSE; //Comenzamos definiendo la variable
-	uint8_t c = uartRxRead(UART_USB);					  // <= está harcodeado la uart
-	/*
-	uint8_t c;
-	while(reading) {
-		while(c = uartRxRead(UART_USB)) {
-			append al string
-			ver el tiempo que pasó
-			ver si ya leí una trama válida
-			break?
-		}
-		cambio el valor de reading
-	}
-	*/
-	xQueueSendFromISR(queueRecievedChar, &c, &xHigherPriorityTaskWoken);
+	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;				 //Comenzamos definiendo la variable
+	uint8_t c = uartRxRead(UART_USB);									 // <= está harcodeado la uart
+	xQueueSendFromISR(queueRecievedChar, &c, &xHigherPriorityTaskWoken); // Manda el char a ala queue
 }
 
 void C1_task(void *param)
 {
 	uint8_t c;
-	C1_FSM.countChars = 0;
+	queueRecievedFrame_t msg;
 
 	while (TRUE)
 	{
@@ -109,8 +98,7 @@ void C1_task(void *param)
 			if (FRAME_START)
 			{
 				C1_FSM.state = C1_TRANSITION;
-				C1_FSM.countChars = 1;
-				C1_FSM.pktRecieved[0] = c; 
+				C1_FSM.countChars = 0;
 			}
 			break;
 		case C1_TRANSITION:
@@ -119,12 +107,15 @@ void C1_task(void *param)
 				C1_FSM.state = C1_ACQUIRING;
 				C1_FSM.pktRecieved[C1_FSM.countChars] = c;
 				C1_FSM.countChars++;
-				// Que hacer con el caracter
+			}
+			else if (FRAME_START)
+			{
+				C1_FSM.state = C1_TRANSITION;
+				C1_FSM.countChars = 0;
 			}
 			else
 			{
 				C1_FSM.state = C1_IDLE;
-				C1_FSM.countChars = 0;
 			}
 			break;
 		case C1_ACQUIRING:
@@ -133,39 +124,31 @@ void C1_task(void *param)
 				C1_FSM.state = C1_ACQUIRING;
 				C1_FSM.pktRecieved[C1_FSM.countChars] = c;
 				C1_FSM.countChars++;
-				if (C1_FSM.countChars == FRAME_MAX_LENGTH) //
+				if (C1_FSM.countChars == FRAME_MAX_LENGTH)
 				{
 					C1_FSM.state = C1_IDLE;
-					C1_FSM.countChars = 0;
 				}
-				// Que hacer con el caracter
+			}
+			else if (FRAME_START)
+			{
+				C1_FSM.state = C1_TRANSITION;
+				C1_FSM.countChars = 0;
 			}
 			else if (END_FRAME)
 			{
-				C1_FSM.state = C1_SENDDING;
-				C1_FSM.pktRecieved[C1_FSM.countChars] = c;
-				C1_FSM.countChars++;
+				// MAndar la cola de mensajes
+				msg.length = C1_FSM.countChars;
+				msg.ptr = pvPortMalloc( msg.length * sizeof( uint8_t ) );
+				configASSERT( msg.ptr != NULL );
+				memcpy(msg.ptr,C1_FSM.pktRecieved,msg.length);
+				xQueueSend(queueC1C2, &msg, portMAX_DELAY);
+				C1_FSM.state = C1_IDLE;
 			}
 			else
 			{
 				C1_FSM.state = C1_IDLE;
-				C1_FSM.countChars = 0;
 			}
 			break;
-
-		case C1_SENDDING:
-
-			C1_FSM.state = C1_IDLE;
-			C1_FSM.countChars = 0;
-			// MAndar la cola de mensajes
-
-			//char * msg = pvPortMalloc( FRAME_MAX_LENGTH * sizeof( char ) );
-			//configASSERT( msg != NULL );
-
-			xQueueSend(queueC1C2, &C1_FSM.pktRecieved, portMAX_DELAY);
-
-			break;
-			
 		default:
 			break;
 		}

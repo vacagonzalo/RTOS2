@@ -21,12 +21,20 @@ extern "C"
 {
 #endif
 #include <inttypes.h>
-    /*=====[Definition macros of public constants]===============================*/
-    #define FRAME_MAX_LENGTH 209
-    #define RECIEVED_CHAR_QUEUE_SIZE 10
+/*=====[Definition macros of public constants]===============================*/
+#define FRAME_MAX_LENGTH 207
+#define RECIEVED_CHAR_QUEUE_SIZE 10
+
     /*=====[Public function-like macros]=========================================*/
 
     /*=====[Definitions of public data types]====================================*/
+
+    typedef struct
+    {
+        uint8_t length;
+        uint8_t *ptr;
+    } queueRecievedFrame_t;
+
     /*=====[Prototypes (declarations) of public functions]=======================*/
 
     void C1_init(uint8_t count);
