@@ -138,9 +138,9 @@ void C1_task(void *param)
 			{
 				// MAndar la cola de mensajes
 				msg.length = C1_FSM.countChars;
-				msg.ptr = pvPortMalloc( msg.length * sizeof( uint8_t ) );
-				configASSERT( msg.ptr != NULL );
-				memcpy(msg.ptr,C1_FSM.pktRecieved,msg.length);
+				msg.ptr = pvPortMalloc(msg.length * sizeof(uint8_t));
+				configASSERT(msg.ptr != NULL);
+				memcpy(msg.ptr, C1_FSM.pktRecieved, msg.length);
 				xQueueSend(queueC1C2, &msg, portMAX_DELAY);
 				C1_FSM.state = C1_IDLE;
 			}

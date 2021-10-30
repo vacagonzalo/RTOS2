@@ -54,39 +54,18 @@ void C2_task_in(void *param)
     while (TRUE)
     {
         xQueueReceive(queueC1C2, &datos, portMAX_DELAY); // Esperamos el caracter
-        
+
         printf("Recibimos <<");
         for (uint8_t i = 0; i < datos.length; i++)
         {
-            printf("%c",datos.ptr[i]);
+            printf("%c", datos.ptr[i]);
         }
         printf(">> por UART\r\n", datos.ptr);
 
         vPortFree(datos.ptr);
-        
-        // Tengo un paquete abierto
 
-            //Si
-
-                // Me llega un ( --> Reinicio el contador
-                // Me llega un ) --> mando por la cola C2C3
-
-            //No
-                // Me llega un ( --> Pido 209 Bytes
-        
-        
-        
-        // Me llega un (
-            // flag captura de paquete inciada -> Reset del indice
-            // sino flag captura de paquete inciada -> Malloc de 209 bytes.
-        // Me llega un )y tengo la flag de captura -> mando por la cola C2C3
-
-        
-        
-        
-        //printf("Recibimos <<%c>> por UART\r\n", datos);
-        //Si llega -> validar
-        //
+        // Falta parsear lo qie se debe mandar a C3
+        // enviar a C3 para que procese
     }
 }
 

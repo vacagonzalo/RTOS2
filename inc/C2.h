@@ -20,9 +20,9 @@
 extern "C"
 {
 #endif
-    //#include <inttypes.h>
-    /*=====[Definition macros of public constants]===============================*/
-    #define RECIEVED_FRAME_QUEUE_SIZE 5
+//#include <inttypes.h>
+/*=====[Definition macros of public constants]===============================*/
+#define RECIEVED_FRAME_QUEUE_SIZE 5
     /*=====[Public function-like macros]=========================================*/
 
     /*=====[Definitions of public data types]====================================*/
