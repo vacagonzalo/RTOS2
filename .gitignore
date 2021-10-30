@@ -1,5 +1,7 @@
+# Folders
 out/
 .vscode/
+
 # Prerequisites
 *.d
 
