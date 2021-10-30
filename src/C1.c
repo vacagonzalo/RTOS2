@@ -36,6 +36,7 @@ void C1_init(uint8_t count)
 
 void onRx(void *noUsado)
 {
-	uint8_t c = uartRxRead(UART_USB);
-	xQueueSend(queueC1C2, &c, portMAX_DELAY);
+	static BaseType_t xHigherPriorityTaskWoken = pdFALSE; //Comenzamos definiendo la variable
+	uint8_t c = uartRxRead(UART_USB); // <= está harcodeado la uart
+	xQueueSendFromISR(queueC1C2, &c, &xHigherPriorityTaskWoken); 
 }
