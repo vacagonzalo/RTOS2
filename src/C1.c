@@ -6,6 +6,7 @@
 #include "FreeRTOS.h"
 #include "FreeRTOSConfig.h"
 #include "task.h"
+#include "queue.h"
 
 #define DEFAULT_BAUD_RATE 115200
 #define UART_COUNT sizeof(uart_configs) / sizeof(t_UART_config)
@@ -21,6 +22,8 @@ const t_UART_config uart_configs[] = {
 
 void onRx(void *noUsado);
 
+extern QueueHandle_t queueC1C2;
+
 void C1_init(uint8_t count)
 {
 	for (uint8_t i = 0; i < count; ++i)
@@ -33,6 +36,6 @@ void C1_init(uint8_t count)
 
 void onRx(void *noUsado)
 {
-	char c = uartRxRead(UART_USB);
-	printf("Recibimos <<%c>> por UART\r\n", c);
+	uint8_t c = uartRxRead(UART_USB);
+	xQueueSend(queueC1C2, &c, portMAX_DELAY);
 }

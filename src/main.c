@@ -16,6 +16,7 @@
 #include "sapi.h"
 #include "userTasks.h"
 #include "C1.h"
+#include "C2.h"
 
 /*=====[Definition macros of private constants]==============================*/
 
@@ -35,6 +36,8 @@ int main(void)
 
    C1_init(UARTS_TO_USE);
 
+   C2_init();
+
    BaseType_t res;
 
    // Create a task in freeRTOS with dynamic memory
@@ -46,8 +49,7 @@ int main(void)
        tskIDLE_PRIORITY + 1,         // Priority at which the task is created.
        0                             // Pointer to the task created in the system
    );
-
-   configASSERT( res == pdPASS );
+   configASSERT(res == pdPASS);
 
    vTaskStartScheduler(); // Initialize scheduler
 
