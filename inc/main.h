@@ -7,8 +7,8 @@
 
 /*=====[Avoid multiple inclusion - begin]====================================*/
 
-#ifndef __TEMPLATE_H__
-#define __TEMPLATE_H__
+#ifndef __MAIN_H__
+#define __MAIN_H__
 
 /*=====[Inclusions of public function dependencies]==========================*/
 
@@ -39,4 +39,4 @@ extern "C" {
 
 /*=====[Avoid multiple inclusion - end]======================================*/
 
-#endif /* __TEMPLATE_H__ */
+#endif /* __MAIN_H__ */

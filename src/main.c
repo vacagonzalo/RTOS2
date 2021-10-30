@@ -7,7 +7,7 @@
 
 /*=====[Inclusions of function dependencies]=================================*/
 
-#include "template.h"
+#include "main.h"
 
 #include "FreeRTOS.h"
 #include "FreeRTOSConfig.h"
@@ -15,6 +15,7 @@
 
 #include "sapi.h"
 #include "userTasks.h"
+#include "C1.h"
 
 /*=====[Definition macros of private constants]==============================*/
 
@@ -30,8 +31,12 @@ int main(void)
 {
    boardInit();
 
+   C1_init();
+
+   BaseType_t res;
+
    // Create a task in freeRTOS with dynamic memory
-   xTaskCreate(
+   res = xTaskCreate(
        myTask,                       // Function that implements the task.
        (const char *)"myTask",       // Text name for the task.
        configMINIMAL_STACK_SIZE * 2, // Stack size in words, not bytes.
@@ -39,6 +44,8 @@ int main(void)
        tskIDLE_PRIORITY + 1,         // Priority at which the task is created.
        0                             // Pointer to the task created in the system
    );
+
+   configASSERT( res == pdPASS );
 
    vTaskStartScheduler(); // Initialize scheduler
 

@@ -31,7 +31,7 @@
 void myTask( void* taskParmPtr )
 {
    // ----- Task setup -----------------------------------
-   printf( "Blinky with freeRTOS y sAPI.\r\n" );
+   //printf( "Blinky with freeRTOS y sAPI.\r\n" );
 
    gpioWrite( LED, ON );
 
