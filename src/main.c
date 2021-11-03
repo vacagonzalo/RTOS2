@@ -17,6 +17,7 @@
 #include "userTasks.h"
 #include "C1.h"
 #include "C2.h"
+#include "C3.h"
 
 /*=====[Definition macros of private constants]==============================*/
 
@@ -35,8 +36,8 @@ int main(void)
    boardInit();
 
    C1_init(UARTS_TO_USE);
-
    C2_init();
+   C3_init();
 
    BaseType_t res;
 

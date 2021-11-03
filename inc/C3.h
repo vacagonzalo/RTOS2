@@ -9,8 +9,8 @@
 
 /*=====[Avoid multiple inclusion - begin]====================================*/
 
-#ifndef __C1_H__
-#define __C1_H__
+#ifndef __C3_H__
+#define __C3_H__
 
 /*=====[Inclusions of public function dependencies]==========================*/
 
@@ -20,25 +20,15 @@
 extern "C"
 {
 #endif
-#include <inttypes.h>
+//#include <inttypes.h>
 /*=====[Definition macros of public constants]===============================*/
-#define FRAME_MAX_LENGTH 209
-#define RECIEVED_CHAR_QUEUE_SIZE 10
 
     /*=====[Public function-like macros]=========================================*/
 
     /*=====[Definitions of public data types]====================================*/
-
-    typedef struct
-    {
-        uint32_t index;
-        uint8_t length;
-        uint8_t *ptr;
-    } queueRecievedFrame_t;
-
     /*=====[Prototypes (declarations) of public functions]=======================*/
 
-    void C1_init(uint8_t count);
+    void C3_init(void);
 
     /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 
@@ -50,4 +40,4 @@ extern "C"
 
 /*=====[Avoid multiple inclusion - end]======================================*/
 
-#endif /* __C1_H__ */
+#endif /* __C3_H__ */

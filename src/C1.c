@@ -46,6 +46,7 @@ const t_UART_config uart_configs[] = {
 	{.uartName = UART_485, .baudRate = DEFAULT_BAUD_RATE}};
 
 void onRx(void *param);
+void C1_task(void *param);
 
 /*
    	   UART_GPIO = 0, // Hardware UART0 via GPIO1(TX), GPIO2(RX) pins on header P0
@@ -90,7 +91,7 @@ void C1_init(uint8_t count)
 
 void onRx(void *param)
 {
-	uint32_t index = (uint32_t) param;									 // Casteo del index
+	uint32_t index = (uint32_t)param;									 // Casteo del index
 	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;				 // Comenzamos definiendo la variable
 	uint8_t c = uartRxRead(uart_configs[index].uartName);				 // Selecciona la UART
 	xQueueSendFromISR(queueRecievedChar, &c, &xHigherPriorityTaskWoken); // Manda el char a a la queue
@@ -98,7 +99,7 @@ void onRx(void *param)
 
 void C1_task(void *param)
 {
-	uint32_t index = (uint32_t) param; // Casteo del index
+	uint32_t index = (uint32_t)param; // Casteo del index
 	uint8_t c;
 	queueRecievedFrame_t msg;
 
@@ -134,8 +135,8 @@ void C1_task(void *param)
 			}
 			else if (END_FRAME)
 			{
-				if (C1_FSM[index].countChars > FRAME_MINIMUN_VALID_LENGTH-1)
-				{	// Mandar la cola de mensajes
+				if (C1_FSM[index].countChars > FRAME_MINIMUN_VALID_LENGTH - 1)
+				{ // Mandar la cola de mensajes
 					msg.index = index;
 					C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
 					C1_FSM[index].countChars++;

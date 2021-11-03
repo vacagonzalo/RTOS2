@@ -14,7 +14,7 @@
 #define FRAME_ID_LENGTH 4
 #define FRAME_CDATA_DISCART_LENGTH 8
 
-QueueHandle_t queueC1C2, queueC2C3, queueC2InOut;
+QueueHandle_t queueC1C2, queueC2C3, queueC2InOut, queueC3C2;
 
 void C2_task_in(void *param);
 void C2_task_out(void *param);
@@ -52,6 +52,8 @@ void C2_init(void)
     configASSERT(queueC2C3 != NULL);
     queueC2InOut = xQueueCreate(RECIEVED_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
     configASSERT(queueC2InOut != NULL);
+    queueC3C2 = xQueueCreate(RECIEVED_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
+    configASSERT(queueC3C2 != NULL);
 }
 
 void C2_task_in(void *param)
@@ -65,13 +67,14 @@ void C2_task_in(void *param)
     while (TRUE)
     {
         xQueueReceive(queueC1C2, &datosC1C2, portMAX_DELAY); // Esperamos el caracter
-
+        taskENTER_CRITICAL();
         printf("C1 to C2: ");
         for (uint8_t i = 0; i < datosC1C2.length; i++)
         {
             printf("%c", datosC1C2.ptr[i]);
         }
         printf(" UART=%d\r\n", datosC1C2.index);
+        taskEXIT_CRITICAL();
 
         // Parseo de ID y envio a C2_task_out via queueC2InOut
         datosC2InOut.index = datosC1C2.index;
@@ -83,7 +86,7 @@ void C2_task_in(void *param)
         datosC2C3.length = datosC1C2.length - FRAME_CDATA_DISCART_LENGTH;
         datosC2C3.ptr = pvPortMalloc(datosC2C3.length * sizeof(uint8_t));
         memcpy(datosC2C3.ptr, datosC1C2.ptr+5, datosC2C3.length);
-        xQueueSend(queueC2C3, &datosC2InOut, portMAX_DELAY);
+        xQueueSend(queueC2C3, &datosC2C3, portMAX_DELAY);
         
         // Libera memoria
         vPortFree(datosC1C2.ptr);
@@ -92,17 +95,33 @@ void C2_task_in(void *param)
 
 void C2_task_out(void *param)
 {
-    queueRecievedFrame_t datosID;
+    queueRecievedFrame_t datosID,datosC3C2;
     while (TRUE)
     {
-        xQueueReceive(queueC2InOut, &datosID, portMAX_DELAY); // Esperamos el caracter
+        xQueueReceive(queueC2InOut, &datosID, portMAX_DELAY); // Esperamos el ID
+        taskENTER_CRITICAL();
         printf("C2In to C2Out: ID=");
         for (uint8_t i = 0; i < datosID.length; i++)
         {
             printf("%c", datosID.ptr[i]);
         }
         printf(" UART=%d\r\n", datosID.index);
-        //Eseperar respuesta de C3
+        taskEXIT_CRITICAL();
+        
+        xQueueReceive(queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
+        
+        taskENTER_CRITICAL();
+        printf("C3 to C2Out: CD=");
+        for (uint8_t i = 0; i < datosC3C2.length; i++)
+        {
+            printf("%c", datosC3C2.ptr[i]);
+        }
+        printf(" UART=%d\r\n", datosC3C2.index);
+        taskEXIT_CRITICAL();
+
+        // Libera memoria
+        vPortFree(datosC3C2.ptr);
+
         // Empaquetar con (, ), ID y CRC
         //Mandarselo a la UART
         //
