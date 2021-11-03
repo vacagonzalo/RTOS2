@@ -20,7 +20,6 @@
 typedef enum
 {
 	C1_IDLE,
-	C1_TRANSITION,
 	C1_ACQUIRING
 } C1_states_t;
 
@@ -76,7 +75,7 @@ void C1_init(uint8_t count)
 			C1_task,					  // Function that implements the task.
 			(const char *)"C1_task",	  // Text name for the task.
 			configMINIMAL_STACK_SIZE * 4, // Stack size in words, not bytes.
-			&i,							  // Parameter passed into the task.
+			(void *)i,					  // Parameter passed into the task.
 			tskIDLE_PRIORITY + 1,		  // Priority at which the task is created.
 			0							  // Pointer to the task created in the system
 		);
@@ -90,7 +89,7 @@ void C1_init(uint8_t count)
 
 void onRx(void *param)
 {
-	uint8_t  index = *(uint8_t*)param;									 // TODO: verificar si esto está bien
+	uint8_t index = *(uint8_t *)param;									 // TODO: verificar si esto está bien
 	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;				 //Comenzamos definiendo la variable
 	uint8_t c = uartRxRead(uart_configs[index].uartName);				 // <= está harcodeado la uart
 	xQueueSendFromISR(queueRecievedChar, &c, &xHigherPriorityTaskWoken); // Manda el char a ala queue
@@ -98,7 +97,7 @@ void onRx(void *param)
 
 void C1_task(void *param)
 {
-	uint8_t index = *( uint8_t *)param; // TODO: revisar que esto esté bien
+	uint8_t index = *(uint8_t *)param; // TODO: revisar que esto esté bien
 	uint8_t c;
 	queueRecievedFrame_t msg;
 
@@ -110,25 +109,10 @@ void C1_task(void *param)
 		case C1_IDLE:
 			if (FRAME_START)
 			{
-				C1_FSM[index].state = C1_TRANSITION;
-				C1_FSM[index].countChars = 0;
-			}
-			break;
-		case C1_TRANSITION:
-			if (VALID_CHAR)
-			{
 				C1_FSM[index].state = C1_ACQUIRING;
+				C1_FSM[index].countChars = 0;
 				C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
 				C1_FSM[index].countChars++;
-			}
-			else if (FRAME_START)
-			{
-				C1_FSM[index].state = C1_TRANSITION;
-				C1_FSM[index].countChars = 0;
-			}
-			else
-			{
-				C1_FSM[index].state = C1_IDLE;
 			}
 			break;
 		case C1_ACQUIRING:
@@ -144,17 +128,23 @@ void C1_task(void *param)
 			}
 			else if (FRAME_START)
 			{
-				C1_FSM[index].state = C1_TRANSITION;
-				C1_FSM[index].countChars = 0;
+				C1_FSM[index].state = C1_ACQUIRING;
+				C1_FSM[index].countChars = 1;
 			}
 			else if (END_FRAME)
 			{
-				// MAndar la cola de mensajes
+				// Mandar la cola de mensajes
+				msg.index = index;
+				C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
+				C1_FSM[index].countChars++;
 				msg.length = C1_FSM[index].countChars;
 				msg.ptr = pvPortMalloc(msg.length * sizeof(uint8_t));
-				configASSERT(msg.ptr != NULL);
-				memcpy(msg.ptr, C1_FSM[index].pktRecieved, msg.length);
-				xQueueSend(queueC1C2, &msg, portMAX_DELAY);
+				//configASSERT(msg.ptr != NULL);
+				if (msg.ptr != NULL)
+				{
+					memcpy(msg.ptr, C1_FSM[index].pktRecieved, msg.length);
+					xQueueSend(queueC1C2, &msg, portMAX_DELAY);
+				}
 				C1_FSM[index].state = C1_IDLE;
 			}
 			else
@@ -163,6 +153,7 @@ void C1_task(void *param)
 			}
 			break;
 		default:
+			C1_FSM[index].state = C1_IDLE;
 			break;
 		}
 	}
