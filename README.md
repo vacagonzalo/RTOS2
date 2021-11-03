@@ -12,7 +12,7 @@ c3_process_buffer, etc)
 * Se genera un manejo de interrupciones que recibe datos por medio de las UART disponibles que posee la EDUCIAA.
 * Existe una tarea C1_task por cada una de las interfaces de UART de la placa EDUCIAA.
 * La tarea C1_task se encarga de parsear y validar cada dato recibido.
-* Cada paquete de datos es enviado desde el servicio de interrupción a la tarea C2_task.
+* Cada paquete de datos es enviado desde el servicio de interrupción a la tarea C2_task_in.
 * Las tareas C1 escriben a través una cola (queueC1C2) en común para pasarle los datos a C2.
 
 R_TP_2
@@ -65,18 +65,18 @@ R_C2_4
 * Se construye una máquina de estado para tal propósito.
 
 ```c
-		switch (C1_FSM[index].state)
-		{
-        case C1_IDLE:
-			if (FRAME_START)
-			{
-				C1_FSM[index].state = C1_ACQUIRING;
-				C1_FSM[index].countChars = 0;
-				C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
-				C1_FSM[index].countChars++;
-			}
-			break;
-        }
+switch (C1_FSM[index].state)
+{
+case C1_IDLE:
+	if (FRAME_START)
+	{
+		C1_FSM[index].state = C1_ACQUIRING;
+		C1_FSM[index].countChars = 0;
+		C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
+		C1_FSM[index].countChars++;
+	}
+	break;
+}
 }
 ```
 
@@ -93,19 +93,19 @@ R_C2_6
 * Una vez recibido un paquete válido se genera una bloque de memoria dinámica para realizar el pasaje de datos entre la capa C1 y capa C2.
 
 ```c
-			else if (END_FRAME)
-			{
-				// Mandar la cola de mensajes
-				msg.index = index;
-				C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
-				C1_FSM[index].countChars++;
-				msg.length = C1_FSM[index].countChars;
-				msg.ptr = pvPortMalloc(msg.length * sizeof(uint8_t));
-				configASSERT(msg.ptr != NULL);
-				memcpy(msg.ptr, C1_FSM[index].pktRecieved, msg.length);
-				xQueueSend(queueC1C2, &msg, portMAX_DELAY);
-				C1_FSM[index].state = C1_IDLE;
-			}
+else if (END_FRAME)
+{
+	// Mandar la cola de mensajes
+	msg.index = index;
+	C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
+	C1_FSM[index].countChars++;
+	msg.length = C1_FSM[index].countChars;
+	msg.ptr = pvPortMalloc(msg.length * sizeof(uint8_t));
+	configASSERT(msg.ptr != NULL);
+	memcpy(msg.ptr, C1_FSM[index].pktRecieved, msg.length);
+	xQueueSend(queueC1C2, &msg, portMAX_DELAY);
+	C1_FSM[index].state = C1_IDLE;
+}
 ```
 R_C2_7
 > Deberá tener control sobre la máxima cantidad de bytes recibidos.
@@ -113,17 +113,17 @@ R_C2_7
 * Se implementa una constante que determina la cantidad máxima de bytes recibidos por un paquete. *FRAME_MAX_LENGTH*
 
 ```c
-		case C1_ACQUIRING:
-			if (VALID_CHAR)
-			{
-				C1_FSM[index].state = C1_ACQUIRING;
-				C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
-				C1_FSM[index].countChars++;
-				if (C1_FSM[index].countChars == FRAME_MAX_LENGTH)
-				{
-					C1_FSM[index].state = C1_IDLE;
-				}
-			}
+case C1_ACQUIRING:
+	if (VALID_CHAR)
+	{
+		C1_FSM[index].state = C1_ACQUIRING;
+		C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
+		C1_FSM[index].countChars++;
+		if (C1_FSM[index].countChars == FRAME_MAX_LENGTH)
+		{
+			C1_FSM[index].state = C1_IDLE;
+		}
+	}
 ```
 
 R_C2_8
@@ -134,7 +134,26 @@ R_C2_8
 R_C2_9
 > En caso de no haber memoria, la recepción de datos del driver de la C1 deberá anularse.
 
-* _ToDo_ _Entregar en clase 3._
+* Se chequea luego del pvPortMalloc en la tarea C1_Task que si no se asigna memoria la máquina de estado vuelve a Idle y no envía el paquete a la capa C2.
+
+```c
+else if (END_FRAME)
+{
+	// Mandar la cola de mensajes
+	msg.index = index;
+	C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
+	C1_FSM[index].countChars++;
+	msg.length = C1_FSM[index].countChars;
+	msg.ptr = pvPortMalloc(msg.length * sizeof(uint8_t));
+	//configASSERT(msg.ptr != NULL);
+	if (msg.ptr != NULL)
+	{
+		memcpy(msg.ptr, C1_FSM[index].pktRecieved, mlength);
+		xQueueSend(queueC1C2, &msg, portMAX_DELAY);
+	}
+	C1_FSM[index].state = C1_IDLE;
+}
+```
 
 R_C2_10
 > Deberá parsear el campo ID y el CRC
