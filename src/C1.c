@@ -16,6 +16,7 @@
 #define END_FRAME (c == ')')
 #define VALID_CHAR (c == ' ' || c == '_' || (c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A) || (c >= 0x30 && c <= 0x39))
 #define MAX_AMOUNT_OF_UARTS 3
+#define FRAME_MINIMUN_VALID_LENGTH 10
 
 typedef enum
 {
@@ -59,12 +60,12 @@ QueueHandle_t queueRecievedChar;
 
 void C1_init(uint8_t count)
 {
-	for (uint8_t i = 0; i < count; ++i)
+	for (uint32_t i = 0; i < count; ++i)
 	{
 		if (i > MAX_AMOUNT_OF_UARTS)
 			break;
 		uartConfig(uart_configs[i].uartName, uart_configs[i].baudRate);
-		uartCallbackSet(uart_configs[i].uartName, UART_RECEIVE, onRx, &i);
+		uartCallbackSet(uart_configs[i].uartName, UART_RECEIVE, onRx, (void *)i);
 		uartInterrupt(uart_configs[i].uartName, true);
 		C1_FSM[i].state = C1_IDLE;
 		C1_FSM[i].countChars = 0;
@@ -89,15 +90,15 @@ void C1_init(uint8_t count)
 
 void onRx(void *param)
 {
-	uint8_t index = *(uint8_t *)param;									 // TODO: verificar si esto está bien
-	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;				 //Comenzamos definiendo la variable
-	uint8_t c = uartRxRead(uart_configs[index].uartName);				 // <= está harcodeado la uart
-	xQueueSendFromISR(queueRecievedChar, &c, &xHigherPriorityTaskWoken); // Manda el char a ala queue
+	uint32_t index = (uint32_t) param;									 // Casteo del index
+	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;				 // Comenzamos definiendo la variable
+	uint8_t c = uartRxRead(uart_configs[index].uartName);				 // Selecciona la UART
+	xQueueSendFromISR(queueRecievedChar, &c, &xHigherPriorityTaskWoken); // Manda el char a a la queue
 }
 
 void C1_task(void *param)
 {
-	uint8_t index = *(uint8_t *)param; // TODO: revisar que esto esté bien
+	uint32_t index = (uint32_t) param; // Casteo del index
 	uint8_t c;
 	queueRecievedFrame_t msg;
 
@@ -133,17 +134,19 @@ void C1_task(void *param)
 			}
 			else if (END_FRAME)
 			{
-				// Mandar la cola de mensajes
-				msg.index = index;
-				C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
-				C1_FSM[index].countChars++;
-				msg.length = C1_FSM[index].countChars;
-				msg.ptr = pvPortMalloc(msg.length * sizeof(uint8_t));
-				//configASSERT(msg.ptr != NULL);
-				if (msg.ptr != NULL)
-				{
-					memcpy(msg.ptr, C1_FSM[index].pktRecieved, msg.length);
-					xQueueSend(queueC1C2, &msg, portMAX_DELAY);
+				if (C1_FSM[index].countChars > FRAME_MINIMUN_VALID_LENGTH-1)
+				{	// Mandar la cola de mensajes
+					msg.index = index;
+					C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
+					C1_FSM[index].countChars++;
+					msg.length = C1_FSM[index].countChars;
+					msg.ptr = pvPortMalloc(msg.length * sizeof(uint8_t));
+					//configASSERT(msg.ptr != NULL);
+					if (msg.ptr != NULL)
+					{
+						memcpy(msg.ptr, C1_FSM[index].pktRecieved, msg.length);
+						xQueueSend(queueC1C2, &msg, portMAX_DELAY);
+					}
 				}
 				C1_FSM[index].state = C1_IDLE;
 			}
