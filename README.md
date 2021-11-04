@@ -38,6 +38,8 @@ aplicadas).
 * Se genera una cola de caracteres recibidos por cada una de las UART que va a una C1_task que hace la validación de lo recibido.
 * Una vez recibido un frame valido se lo pone en una estructura msg junto con el largo *length* del paquete recibido y el identificador de la UART que produjo el paquete *index*. 
 
+![alt text](https://github.com/vacagonzalo/RTOS2/blob/main/img/arch.png)
+
 ## Capa separación de frames (C2)
 
 R_C2_1
@@ -129,7 +131,16 @@ case C1_ACQUIRING:
 R_C2_8
 > Al elevar un paquete recibido a la capa de aplicación (C3), la C2 deberá poder seguir recibiendo otro frame en otro bloque de memoria dinámica, distinto al anterior.
 
-* _ToDo_ _Entregar en clase 3._
+* Se genera un esquema de memoria dinámica para que se pueda seguir recibiendo y encolando paquetes desde la capa C2 hasta C3.
+
+```c
+// Parseo de C+Data y envio a C3 via queueC2C3
+datosC2C3.index = datosC1C2.index;
+datosC2C3.length = datosC1C2.length - FRAME_CDATA_DISCART_LENGTH;
+datosC2C3.ptr = pvPortMalloc(datosC2C3.length * sizeof(uint8_t));
+memcpy(datosC2C3.ptr, datosC1C2.ptr+5, datosC2C3.length);
+xQueueSend(queueC2C3, &datosC2C3, portMAX_DELAY);
+```
 
 R_C2_9
 > En caso de no haber memoria, la recepción de datos del driver de la C1 deberá anularse.
