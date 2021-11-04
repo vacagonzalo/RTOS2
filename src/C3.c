@@ -20,6 +20,8 @@
 #include "task.h"
 #include "queue.h"
 
+#define OFFSET_ID 5
+
 extern QueueHandle_t queueC2C3, queueC3C2;
 
 void C3_task(void *param);
@@ -49,7 +51,7 @@ void C3_task(void *param)
         xQueueReceive(queueC2C3, &datosC2C3, portMAX_DELAY); // Esperamos el caracter
         taskENTER_CRITICAL();
         printf("C2In to C3: CD=");
-        for (uint8_t i = 0; i < datosC2C3.length; i++)
+        for (uint8_t i = OFFSET_ID; i < datosC2C3.length - 1; i++)
         {
             printf("%c", datosC2C3.ptr[i]);
         }
@@ -57,7 +59,7 @@ void C3_task(void *param)
         taskEXIT_CRITICAL();
 
         // Dummy Process
-        for (uint8_t i = 0; i < datosC2C3.length; i++)
+        for (uint8_t i = OFFSET_ID; i < datosC2C3.length - 1; i++)
         {
             datosC2C3.ptr[i]++;
         }
@@ -65,11 +67,7 @@ void C3_task(void *param)
         // envio a C2 via queueC3C2
         datosC3C2.index = datosC2C3.index;
         datosC3C2.length = datosC2C3.length;
-        datosC3C2.ptr = pvPortMalloc(datosC3C2.length * sizeof(uint8_t));
-        memcpy(datosC3C2.ptr, datosC2C3.ptr, datosC3C2.length);
+        datosC3C2.ptr = datosC2C3.ptr;
         xQueueSend(queueC3C2, &datosC3C2, portMAX_DELAY);
-
-        // Libera memoria
-        vPortFree(datosC2C3.ptr);
     }
 }

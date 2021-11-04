@@ -92,13 +92,9 @@ void C2_task_in(void *param)
 
         // Parseo de C+Data y envio a C3 via queueC2C3
         datosC2C3.index = datosC1C2.index;
-        datosC2C3.length = datosC1C2.length - FRAME_CDATA_DISCART_LENGTH;
-        datosC2C3.ptr = pvPortMalloc(datosC2C3.length * sizeof(uint8_t));
-        memcpy(datosC2C3.ptr, datosC1C2.ptr + 5, datosC2C3.length);
+        datosC2C3.length = datosC1C2.length;
+        datosC2C3.ptr = datosC1C2.ptr; 
         xQueueSend(queueC2C3, &datosC2C3, portMAX_DELAY);
-
-        // Libera memoria
-        vPortFree(datosC1C2.ptr);
     }
 }
 
@@ -130,9 +126,5 @@ void C2_task_out(void *param)
 
         // Libera memoria
         vPortFree(datosC3C2.ptr);
-
-        // Empaquetar con (, ), ID y CRC
-        //Mandarselo a la UART
-        //
     }
 }
