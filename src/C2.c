@@ -1,3 +1,12 @@
+/*=============================================================================
+ * Copyright (c) 2021, Gonzalo Nahuel Vaca <vacagonzalo@gmail.com>
+ *                     Lucas Zalazar <lucas.zalazar6@gmail.com>
+ *                     Carlos Maffrand <carlosmaffrand5@gmail.com>
+ * All rights reserved.
+ * License: mit (see LICENSE.txt)
+ * Date: 2021/10/30
+ *===========================================================================*/
+
 #include "C2.h"
 #include "C1.h"
 #include <stdint.h>
@@ -78,16 +87,16 @@ void C2_task_in(void *param)
 
         // Parseo de ID y envio a C2_task_out via queueC2InOut
         datosC2InOut.index = datosC1C2.index;
-        memcpy(datosC2InOut.ptr, datosC1C2.ptr+1, datosC2InOut.length);
+        memcpy(datosC2InOut.ptr, datosC1C2.ptr + 1, datosC2InOut.length);
         xQueueSend(queueC2InOut, &datosC2InOut, portMAX_DELAY);
-        
+
         // Parseo de C+Data y envio a C3 via queueC2C3
         datosC2C3.index = datosC1C2.index;
         datosC2C3.length = datosC1C2.length - FRAME_CDATA_DISCART_LENGTH;
         datosC2C3.ptr = pvPortMalloc(datosC2C3.length * sizeof(uint8_t));
-        memcpy(datosC2C3.ptr, datosC1C2.ptr+5, datosC2C3.length);
+        memcpy(datosC2C3.ptr, datosC1C2.ptr + 5, datosC2C3.length);
         xQueueSend(queueC2C3, &datosC2C3, portMAX_DELAY);
-        
+
         // Libera memoria
         vPortFree(datosC1C2.ptr);
     }
@@ -95,7 +104,7 @@ void C2_task_in(void *param)
 
 void C2_task_out(void *param)
 {
-    queueRecievedFrame_t datosID,datosC3C2;
+    queueRecievedFrame_t datosID, datosC3C2;
     while (TRUE)
     {
         xQueueReceive(queueC2InOut, &datosID, portMAX_DELAY); // Esperamos el ID
@@ -107,9 +116,9 @@ void C2_task_out(void *param)
         }
         printf(" UART=%d\r\n", datosID.index);
         taskEXIT_CRITICAL();
-        
+
         xQueueReceive(queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
-        
+
         taskENTER_CRITICAL();
         printf("C3 to C2Out: CD=");
         for (uint8_t i = 0; i < datosC3C2.length; i++)
@@ -127,5 +136,3 @@ void C2_task_out(void *param)
         //
     }
 }
-
-

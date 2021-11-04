@@ -1,5 +1,7 @@
 /*=============================================================================
  * Copyright (c) 2021, Gonzalo Nahuel Vaca <vacagonzalo@gmail.com>
+ *                     Lucas Zalazar <lucas.zalazar6@gmail.com>
+ *                     Carlos Maffrand <carlosmaffrand5@gmail.com>
  * All rights reserved.
  * License: mit (see LICENSE.txt)
  * Date: 2021/10/30
