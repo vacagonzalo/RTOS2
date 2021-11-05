@@ -21,6 +21,7 @@
 #include "queue.h"
 
 #define OFFSET_ID 5
+#define DISCART_FRAME 3
 
 extern QueueHandle_t queueC2C3, queueC3C2;
 
@@ -51,7 +52,7 @@ void C3_task(void *param)
         xQueueReceive(queueC2C3, &datosC2C3, portMAX_DELAY); // Esperamos el caracter
         taskENTER_CRITICAL();
         printf("C2In to C3: CD=");
-        for (uint8_t i = OFFSET_ID; i < datosC2C3.length - 1; i++)
+        for (uint8_t i = OFFSET_ID; i < datosC2C3.length - DISCART_FRAME; i++)
         {
             printf("%c", datosC2C3.ptr[i]);
         }
@@ -59,7 +60,7 @@ void C3_task(void *param)
         taskEXIT_CRITICAL();
 
         // Dummy Process
-        for (uint8_t i = OFFSET_ID; i < datosC2C3.length - 1; i++)
+        for (uint8_t i = OFFSET_ID; i < datosC2C3.length - DISCART_FRAME; i++)
         {
             datosC2C3.ptr[i]++;
         }
