@@ -3,42 +3,39 @@
 ## Generales
 
 R_TP_1:
-> Cada capa de abstracción deberá estar diseñada de forma tal que se pueda instanciar (y
-eventualmente se pueda reutilizar varias instancias dentro de un mismo Firmware, por ej, para
-utilizarla con varias USARTs). Eso significa que cada capa deberá ser una instancia de clase
-(implementada en C). Los métodos de cada clase, deberán tener uniformidad de nombres (ej: c2_init,
+> Cada capa de abstracción deberá estar diseñada de forma tal que se pueda instanciar (y eventualmente se pueda reutilizar varias instancias dentro de un mismo Firmware, por ej, para utilizarla con varias USARTs). Eso significa que cada capa deberá ser una instancia de clase (implementada en C). Los métodos de cada clase, deberán tener uniformidad de nombres (ej: c2_init,
 c3_process_buffer, etc)
 
 * Se genera un manejo de interrupciones que recibe datos por medio de las UART disponibles que posee la EDUCIAA.
 * Existe una tarea C1_task por cada una de las interfaces de UART de la placa EDUCIAA.
 * La tarea C1_task se encarga de parsear y validar cada dato recibido.
 * Cada paquete de datos es enviado desde el servicio de interrupción a la tarea C2_task_in.
-* Las tareas C1 escriben a través una cola (queueC1C2) en común para pasarle los datos a C2.
+* Las tareas C1 escriben a través de una cola _queueC1C2_ en común para pasarle los datos a C2.
+* La capa C2 se encarga de parsear el frame y pasarle a C2 el Comando y Dato a través de la cola _quequeC2C3_.
+* La capa C3 hace el procesamiento y y devuelve del dato procesado a la capa C2  a través de la cola _quequeC3C2_ 
 
 R_TP_2
-> Las diferentes capas no deben conocer detalles privados de las otras capas. Cada capa debe
-encargarse de su responsabilidad. Ej. C3 NO debe conocer que el paquete inicial tenía CRC o ID, va a
-recibir de C2 un buffer cuyo 1er bytes es el campo C y el resto serán datos y va a devolver a C2 la
-respuesta en el mismo formato.
+> Las diferentes capas no deben conocer detalles privados de las otras capas. Cada capa debe encargarse de su responsabilidad. Ej. C3 NO debe conocer que el paquete inicial tenía CRC o ID, va a
+recibir de C2 un buffer cuyo 1er bytes es el campo C y el resto serán datos y va a devolver a C2 la respuesta en el mismo formato.
 
 * La comunicación entre colas se resolvió con el uso de colas.
 * La comunicación es posible solo entre capas contiguas.
+* En esta primera versión no se ve la necesidad de tener multiples alocaciones de memoria por lo que se hace un pedido de memoria y luego se comparte mediante las colas el puntero.
 
 R_TP_3
-> Todas las justificaciones deberán estar plasmadas en un archivo readme.md (markdown). Deberá
-estar versionado con el código fuente.
+> Todas las justificaciones deberán estar plasmadas en un archivo readme.md (markdown). Deberá estar versionado con el código fuente.
 
 Se utilizó *vscode* con una conexión *liveshare* para trabajar en conjunto.
 Además, se creó un [repositorio de Github](https://github.com/vacagonzalo/RTOS2) donde todos los integrantes realizaron *commits*.
 
 R_TP_4
-> El grupo deberá justificar la elección de las arquitecturas que utilice (gestión de datos, tareas, técnicas
-aplicadas).
+> El grupo deberá justificar la elección de las arquitecturas que utilice (gestión de datos, tareas, técnicas aplicadas).
 
 * Se define tener un handler de interrupciones con la menor cantidad de código posible.
 * Se genera una cola de caracteres recibidos por cada una de las UART que va a una C1_task que hace la validación de lo recibido.
 * Una vez recibido un frame valido se lo pone en una estructura msg junto con el largo *length* del paquete recibido y el identificador de la UART que produjo el paquete *index*. 
 * Se decidió minimizar la alocación de memoria dinámica reutilizando los segmentos de memoria adquiridos en C1 para sobre escribirlos en C2 y enviarlos a C3.
+* La memoria se adquiere en la capa C1 y se libera en la capa C2, habiendo sido utilizada por la capa C3.
 ![alt text](https://github.com/vacagonzalo/RTOS2/blob/main/img/arch.png)
 
 ## Capa separación de frames (C2)
@@ -55,13 +52,15 @@ Se seleccionó el algoritmo de memoria 4 por las siguientes razones:
 Con el modelo de memoria seleccionado, se plantearon las siguientes técnicas:
 * Se utiliza una estrategia de pedido de memoria dinámica mediante pvPortMalloc en la tarea C1_task con el tamaño del paquete recibido por UART.
 * El tamaño máximo permitido de ese pedido de memoria es de *FRAME_MAX_LENGTH 209*.
-* Se libera la memoria dinamica una vez ya fue utilizada en la tarea C2_task_in.
+* Ese segmento de memoria es utilizado al menos en esta versión del SW por las capas C1, C2 y C3.
+* Se libera la memoria dinamica una vez ya fue utilizada en la tarea C2_task_out.
 * Se evaluará utilizar otra estrategia de manejo de menoria dinamica en el transcurso del desarrollo del TP.
 
 R_C2_2
 > La cantidad máxima de bytes de cualquier paquete de datos será de 200 caracteres.
 
 * Se limita el tamaño del paquete que pueden recibir las C1_task a *FRAME_MAX_LENGTH = 209* para cumplir con este requerimiento.
+* Adicionalmente se genera un valor mínimo de frame válido *FRAME_MINIMUN_VALID_LENGTH 9*. Dado que el Frame debe contener 1 byte SOF, 4 de ID, 1 de C, 1 de Dato, 2 de CRC y 1 de EOF. 
 
 R_C2_3
 > Se deberá procesar paquetes que comienzan con SOM = "(" y finalizan con un EOM= ")".
@@ -77,16 +76,11 @@ R_C2_4
 ```c
 switch (C1_FSM[index].state)
 {
-case C1_IDLE:
-	if (FRAME_START)
+case C1_ACQUIRING:
+	else if (FRAME_START)
 	{
-		C1_FSM[index].state = C1_ACQUIRING;
-		C1_FSM[index].countChars = 0;
-		C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
-		C1_FSM[index].countChars++;
+		C1_FSM[index].countChars = 1;
 	}
-	break;
-}
 }
 ```
 
@@ -103,19 +97,24 @@ R_C2_6
 * Una vez recibido un paquete válido se genera una bloque de memoria dinámica para realizar el pasaje de datos entre la capa C1 y capa C2.
 
 ```c
-else if (END_FRAME)
-{
-	// Mandar la cola de mensajes
-	msg.index = index;
-	C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
-	C1_FSM[index].countChars++;
-	msg.length = C1_FSM[index].countChars;
-	msg.ptr = pvPortMalloc(msg.length * sizeof(uint8_t));
-	configASSERT(msg.ptr != NULL);
-	memcpy(msg.ptr, C1_FSM[index].pktRecieved, msg.length);
-	xQueueSend(queueC1C2, &msg, portMAX_DELAY);
-	C1_FSM[index].state = C1_IDLE;
-}
+case C1_ACQUIRING:
+	else if (END_FRAME)
+	{
+		if (C1_FSM[index].countChars > FRAME_MINIMUN_VALID_LENGTH - 1)
+		{ // Mandar la cola de mensajes
+			msg.index = index;
+			C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
+			C1_FSM[index].countChars++;
+			msg.length = C1_FSM[index].countChars;
+			msg.ptr = pvPortMalloc(msg.length * sizeof(uint8_t));
+			if (msg.ptr != NULL)
+			{
+				memcpy(msg.ptr, C1_FSM[index].pktRecieved, msg.length);
+				xQueueSend(queueC1C2, &msg, portMAX_DELAY);
+			}
+		}
+		C1_FSM[index].state = C1_IDLE;
+	}
 ```
 R_C2_7
 > Deberá tener control sobre la máxima cantidad de bytes recibidos.
@@ -126,7 +125,6 @@ R_C2_7
 case C1_ACQUIRING:
 	if (VALID_CHAR)
 	{
-		C1_FSM[index].state = C1_ACQUIRING;
 		C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
 		C1_FSM[index].countChars++;
 		if (C1_FSM[index].countChars == FRAME_MAX_LENGTH)
@@ -145,8 +143,7 @@ R_C2_8
 // Parseo de C+Data y envio a C3 via queueC2C3
 datosC2C3.index = datosC1C2.index;
 datosC2C3.length = datosC1C2.length - FRAME_CDATA_DISCART_LENGTH;
-datosC2C3.ptr = pvPortMalloc(datosC2C3.length * sizeof(uint8_t));
-memcpy(datosC2C3.ptr, datosC1C2.ptr+5, datosC2C3.length);
+datosC2C3.ptr = datosC1C2.ptr;
 xQueueSend(queueC2C3, &datosC2C3, portMAX_DELAY);
 ```
 

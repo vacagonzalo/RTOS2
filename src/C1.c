@@ -25,7 +25,7 @@
 #define END_FRAME (c == ')')
 #define VALID_CHAR (c == ' ' || c == '_' || (c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A) || (c >= 0x30 && c <= 0x39))
 #define MAX_AMOUNT_OF_UARTS 3
-#define FRAME_MINIMUN_VALID_LENGTH 10
+#define FRAME_MINIMUN_VALID_LENGTH 9
 
 typedef enum
 {
@@ -129,7 +129,6 @@ void C1_task(void *param)
 		case C1_ACQUIRING:
 			if (VALID_CHAR)
 			{
-				C1_FSM[index].state = C1_ACQUIRING;
 				C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
 				C1_FSM[index].countChars++;
 				if (C1_FSM[index].countChars == FRAME_MAX_LENGTH)
@@ -139,7 +138,6 @@ void C1_task(void *param)
 			}
 			else if (FRAME_START)
 			{
-				C1_FSM[index].state = C1_ACQUIRING;
 				C1_FSM[index].countChars = 1;
 			}
 			else if (END_FRAME)
