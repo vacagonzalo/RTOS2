@@ -21,7 +21,8 @@ encargarse de su responsabilidad. Ej. C3 NO debe conocer que el paquete inicial 
 recibir de C2 un buffer cuyo 1er bytes es el campo C y el resto serán datos y va a devolver a C2 la
 respuesta en el mismo formato.
 
-* C1 se comunica con C2 solo por medio de la cola (queueC1C2).
+* La comunicación entre colas se resolvió con el uso de colas.
+* La comunicación es posible solo entre capas contiguas.
 
 R_TP_3
 > Todas las justificaciones deberán estar plasmadas en un archivo readme.md (markdown). Deberá
@@ -37,7 +38,7 @@ aplicadas).
 * Se define tener un handler de interrupciones con la menor cantidad de código posible.
 * Se genera una cola de caracteres recibidos por cada una de las UART que va a una C1_task que hace la validación de lo recibido.
 * Una vez recibido un frame valido se lo pone en una estructura msg junto con el largo *length* del paquete recibido y el identificador de la UART que produjo el paquete *index*. 
-
+* Se decidió minimizar la alocación de memoria dinámica reutilizando los segmentos de memoria adquiridos en C1 para sobre escribirlos en C2 y enviarlos a C3.
 ![alt text](https://github.com/vacagonzalo/RTOS2/blob/main/img/arch.png)
 
 ## Capa separación de frames (C2)
@@ -45,6 +46,13 @@ aplicadas).
 R_C2_1
 > El grupo deberá justificar la elección del esquema de memoria dinámica utilizada.
 
+Se seleccionó el algoritmo de memoria 4 por las siguientes razones:
+* Se descartó el algoritmo 1 ya que no permite liberar memoria dinámica. Dado el volumen de datos a manejar, se prevee la necesidad de reciclar memoria.
+* Se descartó el algoritmo 2 ya que no unifica los bloques de memoria contiguos liberados. Esto incrementa la posibilidad de fallar en la operación de alocación aún teniendo memoria disponible.
+* El algoritmo 3 es dependiente del compilador y el enlazador y no se tiene control sobre sus parámetros. Probablemente necesitemos realizar un ajuste fino cuando se realicen las pruebas con el script que provea la cátedra.
+* El algoritmo 4 permite liberar memoria y unifica los bloques libres contiguos. Además, la estrategia *first fit* prioriza la velocidad de alocación.
+
+Con el modelo de memoria seleccionado, se plantearon las siguientes técnicas:
 * Se utiliza una estrategia de pedido de memoria dinámica mediante pvPortMalloc en la tarea C1_task con el tamaño del paquete recibido por UART.
 * El tamaño máximo permitido de ese pedido de memoria es de *FRAME_MAX_LENGTH 209*.
 * Se libera la memoria dinamica una vez ya fue utilizada en la tarea C2_task_in.
@@ -329,7 +337,6 @@ R_AO_8
 R_AO_9
 > Si algún proceso de creación de objetos fallará (falta de memoria por ejemplo) se deberá
 enviar a C2 un mensaje de error con código ERROR_SYSTEM
-
 
 ## Opcionales
 
