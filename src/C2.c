@@ -8,7 +8,7 @@
  *===========================================================================*/
 
 #include "C2.h"
-#include "C1.h"
+#include "msg.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -23,7 +23,8 @@
 #define FRAME_ID_LENGTH 4
 #define FRAME_CDATA_DISCART_LENGTH 8
 
-QueueHandle_t queueC1C2, queueC2C3, queueC2InOut, queueC3C2;
+extern msg_t msg;
+QueueHandle_t queueC2InOut;
 
 void C2_task_in(void *param);
 void C2_task_out(void *param);
@@ -55,14 +56,8 @@ void C2_init(void)
     configASSERT(res == pdPASS);
 
     // Crear cola para impresion de puntaje
-    queueC1C2 = xQueueCreate(RECIEVED_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
-    configASSERT(queueC1C2 != NULL);
-    queueC2C3 = xQueueCreate(RECIEVED_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
-    configASSERT(queueC2C3 != NULL);
     queueC2InOut = xQueueCreate(RECIEVED_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
     configASSERT(queueC2InOut != NULL);
-    queueC3C2 = xQueueCreate(RECIEVED_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
-    configASSERT(queueC3C2 != NULL);
 }
 
 void C2_task_in(void *param)
@@ -75,7 +70,7 @@ void C2_task_in(void *param)
 
     while (TRUE)
     {
-        xQueueReceive(queueC1C2, &datosC1C2, portMAX_DELAY); // Esperamos el caracter
+        xQueueReceive(msg.queueC1C2, &datosC1C2, portMAX_DELAY); // Esperamos el caracter
         taskENTER_CRITICAL();
         printf("C1 to C2: ");
         for (uint8_t i = 0; i < datosC1C2.length; i++)
@@ -93,8 +88,8 @@ void C2_task_in(void *param)
         // Parseo de C+Data y envio a C3 via queueC2C3
         datosC2C3.index = datosC1C2.index;
         datosC2C3.length = datosC1C2.length;
-        datosC2C3.ptr = datosC1C2.ptr; 
-        xQueueSend(queueC2C3, &datosC2C3, portMAX_DELAY);
+        datosC2C3.ptr = datosC1C2.ptr;
+        xQueueSend(msg.queueC2C3, &datosC2C3, portMAX_DELAY);
     }
 }
 
@@ -113,7 +108,7 @@ void C2_task_out(void *param)
         printf(" UART=%d\r\n", datosID.index);
         taskEXIT_CRITICAL();
 
-        xQueueReceive(queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
+        xQueueReceive(msg.queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
 
         taskENTER_CRITICAL();
         printf("C3 to C2Out: CD=");

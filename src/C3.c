@@ -8,7 +8,7 @@
  *===========================================================================*/
 
 #include "C3.h"
-#include "C1.h"
+#include "msg.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -23,7 +23,7 @@
 #define OFFSET_ID 5
 #define DISCART_FRAME 3
 
-extern QueueHandle_t queueC2C3, queueC3C2;
+extern msg_t msg;
 
 void C3_task(void *param);
 
@@ -49,7 +49,7 @@ void C3_task(void *param)
 
     while (TRUE)
     {
-        xQueueReceive(queueC2C3, &datosC2C3, portMAX_DELAY); // Esperamos el caracter
+        xQueueReceive(msg.queueC2C3, &datosC2C3, portMAX_DELAY); // Esperamos el caracter
         taskENTER_CRITICAL();
         printf("C2In to C3: CD=");
         for (uint8_t i = OFFSET_ID; i < datosC2C3.length - DISCART_FRAME; i++)
@@ -69,6 +69,6 @@ void C3_task(void *param)
         datosC3C2.index = datosC2C3.index;
         datosC3C2.length = datosC2C3.length;
         datosC3C2.ptr = datosC2C3.ptr;
-        xQueueSend(queueC3C2, &datosC3C2, portMAX_DELAY);
+        xQueueSend(msg.queueC3C2, &datosC3C2, portMAX_DELAY);
     }
 }

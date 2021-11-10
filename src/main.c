@@ -17,6 +17,7 @@
 
 #include "sapi.h"
 #include "userTasks.h"
+#include "msg.h"
 #include "C1.h"
 #include "C2.h"
 #include "C3.h"
@@ -37,6 +38,7 @@ int main(void)
 {
    boardInit();
 
+   queue_init();
    C1_init(UARTS_TO_USE);
    C2_init();
    C3_init();

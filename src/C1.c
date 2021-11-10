@@ -8,6 +8,7 @@
  *===========================================================================*/
 
 #include "C1.h"
+#include "msg.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -50,9 +51,7 @@ typedef struct
 C1_FSM_t C1_FSM[MAX_AMOUNT_OF_UARTS];
 
 const t_UART_config uart_configs[] = {
-	{.uartName = UART_USB, .baudRate = DEFAULT_BAUD_RATE},
-	{.uartName = UART_232, .baudRate = DEFAULT_BAUD_RATE},
-	{.uartName = UART_485, .baudRate = DEFAULT_BAUD_RATE}};
+	{.uartName = UART_USB, .baudRate = DEFAULT_BAUD_RATE}};
 
 void onRx(void *param);
 void C1_task(void *param);
@@ -65,7 +64,7 @@ void C1_task(void *param);
 	   UART_232  = 5, // Hardware UART3 via 232_RX and 232_tx pins on header P1
 */
 
-extern QueueHandle_t queueC1C2;
+extern msg_t msg;
 QueueHandle_t queueRecievedChar;
 
 void C1_init(uint8_t count)
@@ -110,7 +109,7 @@ void C1_task(void *param)
 {
 	uint32_t index = (uint32_t)param; // Casteo del index
 	uint8_t c;
-	queueRecievedFrame_t msg;
+	queueRecievedFrame_t msgSend;
 
 	while (TRUE)
 	{
@@ -144,16 +143,16 @@ void C1_task(void *param)
 			{
 				if (C1_FSM[index].countChars > FRAME_MINIMUN_VALID_LENGTH - 1)
 				{ // Mandar la cola de mensajes
-					msg.index = index;
+					msgSend.index = index;
 					C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
 					C1_FSM[index].countChars++;
-					msg.length = C1_FSM[index].countChars;
-					msg.ptr = pvPortMalloc(msg.length * sizeof(uint8_t));
+					msgSend.length = C1_FSM[index].countChars;
+					msgSend.ptr = pvPortMalloc(msgSend.length * sizeof(uint8_t));
 					//configASSERT(msg.ptr != NULL);
-					if (msg.ptr != NULL)
+					if (msgSend.ptr != NULL)
 					{
-						memcpy(msg.ptr, C1_FSM[index].pktRecieved, msg.length);
-						xQueueSend(queueC1C2, &msg, portMAX_DELAY);
+						memcpy(msgSend.ptr, C1_FSM[index].pktRecieved, msgSend.length);
+						xQueueSend(msg.queueC1C2, &msgSend, portMAX_DELAY);
 					}
 				}
 				C1_FSM[index].state = C1_IDLE;
