@@ -21,6 +21,7 @@
 #include "queue.h"
 
 #define FRAME_ID_LENGTH 4
+#define FRAME_CRCEOF_LENGTH 3
 #define FRAME_CDATA_DISCART_LENGTH 8
 
 extern msg_t msg;
@@ -71,14 +72,14 @@ void C2_task_in(void *param)
     while (TRUE)
     {
         xQueueReceive(msg.queueC1C2, &datosC1C2, portMAX_DELAY); // Esperamos el caracter
-        taskENTER_CRITICAL();
+        /*taskENTER_CRITICAL();
         printf("C1 to C2: ");
         for (uint8_t i = 0; i < datosC1C2.length; i++)
         {
             printf("%c", datosC1C2.ptr[i]);
         }
         printf(" UART=%d\r\n", datosC1C2.index);
-        taskEXIT_CRITICAL();
+        taskEXIT_CRITICAL();*/
 
         // Parseo de ID y envio a C2_task_out via queueC2InOut
         datosC2InOut.index = datosC1C2.index;
@@ -96,28 +97,41 @@ void C2_task_in(void *param)
 void C2_task_out(void *param)
 {
     queueRecievedFrame_t datosID, datosC3C2;
+    uint8_t crc_eof[FRAME_CRCEOF_LENGTH];
+    crc_eof[2] = ')';
     while (TRUE)
     {
         xQueueReceive(queueC2InOut, &datosID, portMAX_DELAY); // Esperamos el ID
-        taskENTER_CRITICAL();
+        /*taskENTER_CRITICAL();
         printf("C2In to C2Out: ID=");
         for (uint8_t i = 0; i < datosID.length; i++)
         {
             printf("%c", datosID.ptr[i]);
         }
         printf(" UART=%d\r\n", datosID.index);
-        taskEXIT_CRITICAL();
+        taskEXIT_CRITICAL();*/
 
         xQueueReceive(msg.queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
+        // calculo de CRC a enviar
+        crc_eof[0] = 'C';
+        crc_eof[1] = '2';
 
         taskENTER_CRITICAL();
-        printf("C3 to C2Out: CD=");
+        printf("C2Out: ");
         for (uint8_t i = 0; i < datosC3C2.length; i++)
         {
             printf("%c", datosC3C2.ptr[i]);
         }
+        // CRC y EOF
+        for (uint8_t i = 0; i < FRAME_CRCEOF_LENGTH; i++)
+        {
+            printf("%c", crc_eof[i]);
+        }
+        // UART Index
         printf(" UART=%d\r\n", datosC3C2.index);
         taskEXIT_CRITICAL();
+
+        // TODO: Reemplazar el printf por una cola que envíá al un IRS para enviar el dato de salida.
 
         // Libera memoria
         vPortFree(datosC3C2.ptr);

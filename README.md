@@ -175,24 +175,73 @@ R_C2_10
 > Deberá parsear el campo ID y el CRC
 
 * Se pasa el puntero a la memoria y se establece unas contantes para el la capa C3 trabaje sobre el comando y los datos.
+
 ```c
 #define OFFSET_ID 5
 #define DISCART_FRAME 3
 ```
+
 R_C2_11
 > El campo de ID y CRC que llegan en cada paquete estará formado por números ASCII hexadecimales.
 
-* _ToDo_  _Entregar en clase 4._
+* Se implementa el chequeo en la maquina de estados de procesado de frames para el ID.
+
+```c
+case C1_ACQUIRING:
+	if (VALID_CHAR)
+	{
+		C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
+		C1_FSM[index].countChars++;
+		if ((C1_FSM[index].countChars == FRAME_MAX_LENGTH) ||
+			(!(VALID_ID_CRC_CHAR) && C1_FSM[index].countChars < ID_LOCATION))
+		{
+			C1_FSM[index].state = C1_IDLE;
+		}
+	}
+```
+
+* Se implementa un chequeo de de validez de los caracteres ingresados en el CRC en la máquina de estados de la adquisicón del frame. El mismo se hace durante el procesamiento del caracter de EOF.
+
+```c
+else if (END_FRAME)
+{
+	if ((C1_FSM[index].countChars > FRAME_MINIMUN_VALID_LENGTH - 1) 
+	&& (VALID_CRC_CHAR1) && (VALID_CRC_CHAR2))
+	{   // Mandar la cola de mensajes
+		msgSend.index = index;
+		C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
+		C1_FSM[index].countChars++;
+		msgSend.length = C1_FSM[index].countChars;
+		msgSend.ptr = pvPortMalloc(msgSend.length * sizeof(uint8_t));
+		if (msgSend.ptr != NULL)
+		{
+			memcpy(msgSend.ptr, C1_FSM[index].pktRecieved, msgSend.length);
+			xQueueSend(msg.queueC1C2, &msgSend, portMAX_DELAY);
+		}
+	}
+	C1_FSM[index].state = C1_IDLE;
+}
+```
 
 R_C2_12
 > Si el campo de ID o el del CRC poseen un caracter invalido, la trama deberá descartarse (válido: '0' a '9' y 'A' a 'F').
 
-* _ToDo_ _Entregar en clase 4._
+* Se genera que si el ID contiene un caracter diferente a los mencionados se vuelve a inciciar la catura del frame nuevamente.
+* Se genera que si el CRC contiene un caracter diferente a los mencionados se vuelve a inciciar la catura del frame nuevamente.
+* Esto se puede observar en los codigos del requerimiento R_C2_12.
 
 R_C2_13
 > Cuando la aplicación (C3) desee enviar un mensaje por el canal de comunicación, C2 deberá agregarle el código de comprobación, la identificación y los delimitadores.
 
-* _ToDo_ _Entregar en clase 4._
+* Se implementa que el la tarea C2_task_out agrega el CRC y el EOF.
+
+```c
+// CRC y EOF
+for (uint8_t i = 0; i < FRAME_CRCEOF_LENGTH; i++)
+{
+    printf("%c", crc_eof[i]);
+}
+```
 
 R_C2_14
 > Deberá procesar en contexto de ISR todos los bytes salientes en C2
@@ -202,12 +251,21 @@ R_C2_14
 R_C2_15
 > Al finalizar la transmisión, se deberá liberar la memoria dinámica utilizada para la transacción.
 
-* _ToDo_ _Entregar en clase 4._
+* Se libera la memoria utilizada luego de enviar el frame en C2_task_out.
+
+```c
+// Libera memoria
+vPortFree(datosC3C2.ptr);
+```
 
 R_C2_16
 > El campo de identificación deberá incluirse en la respuesta asociada al paquete.
 
-* _ToDo_ _Entregar en clase 4._
+* Se la captura del ID en la tarea C2_task_out.
+
+```c
+xQueueReceive(queueC2InOut, &datosID, portMAX_DELAY); // Esperamos el ID
+```
 
 R_C2_17
 > Deberá sumar otro criterio de descarte de trama. Cuando transcurre un tiempo sin haber recibido un byte y el frame no haya sido "cerrado", el paquete deberá descartarse.
