@@ -15,14 +15,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "sapi.h"
 #include "FreeRTOS.h"
 #include "FreeRTOSConfig.h"
 #include "task.h"
 #include "queue.h"
 
-#define DEFAULT_BAUD_RATE 115200
-#define UART_COUNT sizeof(uart_configs) / sizeof(t_UART_config)
+#define RECIEVED_CHAR_QUEUE_SIZE 10
 #define FRAME_START (c == '(')
 #define END_FRAME (c == ')')
 #define VALID_CHAR (c == ' ' || c == '_' || (c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A) || (c >= 0x30 && c <= 0x39))
@@ -30,8 +28,8 @@
 #define FRAME_MINIMUN_VALID_LENGTH 9
 #define VALID_ID_CHAR (c >= 0x41 && c <= 0x46) || (c >= 0x30 && c <= 0x39)
 #define ID_LOCATION 5
-#define VALID_CRC_CHAR1 ((C1_FSM[index].pktRecieved[C1_FSM[index].countChars-2] >= 0x41 && C1_FSM[index].pktRecieved[C1_FSM[index].countChars-2] <= 0x46) || (C1_FSM[index].pktRecieved[C1_FSM[index].countChars-2] >= 0x30 && C1_FSM[index].pktRecieved[C1_FSM[index].countChars-2] <= 0x39))
-#define VALID_CRC_CHAR2 ((C1_FSM[index].pktRecieved[C1_FSM[index].countChars-1] >= 0x41 && C1_FSM[index].pktRecieved[C1_FSM[index].countChars-1] <= 0x46) || (C1_FSM[index].pktRecieved[C1_FSM[index].countChars-1] >= 0x30 && C1_FSM[index].pktRecieved[C1_FSM[index].countChars-1] <= 0x39))
+#define VALID_CRC_CHAR1 ((C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 2] >= 0x41 && C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 2] <= 0x46) || (C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 2] >= 0x30 && C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 2] <= 0x39))
+#define VALID_CRC_CHAR2 ((C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 1] >= 0x41 && C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 1] <= 0x46) || (C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 1] >= 0x30 && C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 1] <= 0x39))
 
 typedef enum
 {
@@ -41,22 +39,23 @@ typedef enum
 
 typedef struct
 {
-	uartMap_t uartName;
-	uint32_t baudRate;
-} t_UART_config;
-
-typedef struct
-{
 	C1_states_t state;
 	uint8_t uart_index;
 	uint8_t countChars;
 	uint8_t pktRecieved[FRAME_MAX_LENGTH];
+	QueueHandle_t queueRecievedChar;
 } C1_FSM_t;
 
-C1_FSM_t C1_FSM[MAX_AMOUNT_OF_UARTS];
+typedef struct
+{
+	uartMap_t uartName;
+	uint32_t baudRate;
+} t_UART_config;
 
 const t_UART_config uart_configs[] = {
 	{.uartName = UART_USB, .baudRate = DEFAULT_BAUD_RATE}};
+
+C1_FSM_t C1_FSM[UARTS_TO_USE];
 
 void onRx(void *param);
 void C1_task(void *param);
@@ -69,12 +68,11 @@ void C1_task(void *param);
 	   UART_232  = 5, // Hardware UART3 via 232_RX and 232_tx pins on header P1
 */
 
-extern msg_t msg;
-QueueHandle_t queueRecievedChar;
+extern msg_t msg[UARTS_TO_USE];
 
-void C1_init(uint8_t count)
+void C1_init(void)
 {
-	for (uint32_t i = 0; i < count; ++i)
+	for (uint32_t i = 0; i < UARTS_TO_USE; ++i)
 	{
 		if (i > MAX_AMOUNT_OF_UARTS)
 			break;
@@ -95,11 +93,10 @@ void C1_init(uint8_t count)
 			0							  // Pointer to the task created in the system
 		);
 		configASSERT(res == pdPASS);
+		// Crear cola para recepcion de caracteres
+		C1_FSM[i].queueRecievedChar = xQueueCreate(RECIEVED_CHAR_QUEUE_SIZE, sizeof(uint8_t));
+		configASSERT(C1_FSM[i].queueRecievedChar != NULL);
 	}
-
-	// Crear cola para recepcion de caracteres
-	queueRecievedChar = xQueueCreate(RECIEVED_CHAR_QUEUE_SIZE, sizeof(uint8_t));
-	configASSERT(queueRecievedChar != NULL);
 }
 
 void onRx(void *param)
@@ -107,7 +104,7 @@ void onRx(void *param)
 	uint32_t index = (uint32_t)param;									 // Casteo del index
 	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;				 // Comenzamos definiendo la variable
 	uint8_t c = uartRxRead(uart_configs[index].uartName);				 // Selecciona la UART
-	xQueueSendFromISR(queueRecievedChar, &c, &xHigherPriorityTaskWoken); // Manda el char a a la queue
+	xQueueSendFromISR(C1_FSM[index].queueRecievedChar, &c, &xHigherPriorityTaskWoken); // Manda el char a a la queue
 }
 
 void C1_task(void *param)
@@ -118,7 +115,7 @@ void C1_task(void *param)
 
 	while (TRUE)
 	{
-		xQueueReceive(queueRecievedChar, &c, portMAX_DELAY); // Esperamos el caracter
+		xQueueReceive(C1_FSM[index].queueRecievedChar, &c, portMAX_DELAY); // Esperamos el caracter
 		switch (C1_FSM[index].state)
 		{
 		case C1_IDLE:
@@ -136,7 +133,7 @@ void C1_task(void *param)
 				C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
 				C1_FSM[index].countChars++;
 				if ((C1_FSM[index].countChars == FRAME_MAX_LENGTH) ||
-				   (!(VALID_ID_CHAR) && C1_FSM[index].countChars < ID_LOCATION))
+					(!(VALID_ID_CHAR) && C1_FSM[index].countChars < ID_LOCATION))
 				{
 					C1_FSM[index].state = C1_IDLE;
 				}
@@ -158,7 +155,7 @@ void C1_task(void *param)
 					if (msgSend.ptr != NULL)
 					{
 						memcpy(msgSend.ptr, C1_FSM[index].pktRecieved, msgSend.length);
-						xQueueSend(msg.queueC1C2, &msgSend, portMAX_DELAY);
+						xQueueSend(msg[index].queueC1C2, &msgSend, portMAX_DELAY);
 					}
 				}
 				C1_FSM[index].state = C1_IDLE;

@@ -31,7 +31,7 @@ extern "C"
 
     /*=====[Prototypes (declarations) of public functions]=======================*/
 
-    void C1_init(uint8_t count);
+    void C1_init(void);
 
     /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 

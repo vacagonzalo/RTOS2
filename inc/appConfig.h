@@ -12,6 +12,8 @@
 #ifndef __APPCONFIG_H__
 #define __APPCONFIG_H__
 
+#include "sapi.h"
+
 /*=====[Inclusions of public function dependencies]==========================*/
 
 /*=====[C++ - begin]=========================================================*/
@@ -23,7 +25,7 @@ extern "C"
 #include <inttypes.h>
 /*=====[Definition macros of public constants]===============================*/
 #define FRAME_MAX_LENGTH 209
-#define RECIEVED_CHAR_QUEUE_SIZE 10
+#define DEFAULT_BAUD_RATE 115200
 #define UARTS_TO_USE 1
 
     /*=====[Public function-like macros]=========================================*/

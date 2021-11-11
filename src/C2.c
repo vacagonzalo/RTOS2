@@ -25,7 +25,7 @@
 #define FRAME_CRCEOF_LENGTH 3
 #define FRAME_CDATA_DISCART_LENGTH 8
 
-extern msg_t msg;
+extern msg_t msg[UARTS_TO_USE];
 
 typedef struct
 {
@@ -84,7 +84,7 @@ void C2_task_in(void *param)
 
     while (TRUE)
     {
-        xQueueReceive(msg.queueC1C2, &datosC1C2, portMAX_DELAY); // Esperamos el caracter
+        xQueueReceive(msg[index].queueC1C2, &datosC1C2, portMAX_DELAY); // Esperamos el caracter
         /*taskENTER_CRITICAL();
         printf("C1 to C2: ");
         for (uint8_t i = 0; i < datosC1C2.length; i++)
@@ -103,7 +103,7 @@ void C2_task_in(void *param)
         datosC2C3.index = datosC1C2.index;
         datosC2C3.length = datosC1C2.length;
         datosC2C3.ptr = datosC1C2.ptr;
-        xQueueSend(msg.queueC2C3, &datosC2C3, portMAX_DELAY);
+        xQueueSend(msg[index].queueC2C3, &datosC2C3, portMAX_DELAY);
     }
 }
 
@@ -125,7 +125,7 @@ void C2_task_out(void *param)
         printf(" UART=%d\r\n", datosID.index);
         taskEXIT_CRITICAL();*/
 
-        xQueueReceive(msg.queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
+        xQueueReceive(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
         // calculo de CRC a enviar
         crc_eof[0] = 'C';
         crc_eof[1] = '2';

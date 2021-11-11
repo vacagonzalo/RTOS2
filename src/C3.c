@@ -24,7 +24,7 @@
 #define OFFSET_ID 5
 #define DISCART_FRAME 3
 
-extern msg_t msg;
+extern msg_t msg[UARTS_TO_USE];
 
 void C3_task(void *param);
 
@@ -46,11 +46,12 @@ void C3_init(void)
 
 void C3_task(void *param)
 {
+    uint32_t index = (uint32_t)param;
     queueRecievedFrame_t datosC2C3, datosC3C2;
 
     while (TRUE)
     {
-        xQueueReceive(msg.queueC2C3, &datosC2C3, portMAX_DELAY); // Esperamos el caracter
+        xQueueReceive(msg[index].queueC2C3, &datosC2C3, portMAX_DELAY); // Esperamos el caracter
         /*taskENTER_CRITICAL();
         printf("C2In to C3: CD=");
         for (uint8_t i = OFFSET_ID; i < datosC2C3.length - DISCART_FRAME; i++)
@@ -70,6 +71,6 @@ void C3_task(void *param)
         datosC3C2.index = datosC2C3.index;
         datosC3C2.length = datosC2C3.length-DISCART_FRAME;
         datosC3C2.ptr = datosC2C3.ptr;
-        xQueueSend(msg.queueC3C2, &datosC3C2, portMAX_DELAY);
+        xQueueSend(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);
     }
 }

@@ -37,7 +37,7 @@ int main(void)
    boardInit();
 
    queue_init();
-   C1_init(UARTS_TO_USE);
+   C1_init();
    C2_init();
    C3_init();
 
