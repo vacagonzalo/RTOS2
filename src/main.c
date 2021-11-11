@@ -21,10 +21,8 @@
 #include "C1.h"
 #include "C2.h"
 #include "C3.h"
-
+#include "appConfig.h"
 /*=====[Definition macros of private constants]==============================*/
-
-#define UARTS_TO_USE 1
 
 /*=====[Definitions of extern global variables]==============================*/
 

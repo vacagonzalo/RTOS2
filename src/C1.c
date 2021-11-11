@@ -9,6 +9,7 @@
 
 #include "C1.h"
 #include "msg.h"
+#include "appConfig.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -153,8 +154,7 @@ void C1_task(void *param)
 					C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
 					C1_FSM[index].countChars++;
 					msgSend.length = C1_FSM[index].countChars;
-					msgSend.ptr = pvPortMalloc(msgSend.length * sizeof(uint8_t));
-					//configASSERT(msg.ptr != NULL);
+					msgSend.ptr = pvPortMalloc(FRAME_MAX_LENGTH * sizeof(uint8_t));
 					if (msgSend.ptr != NULL)
 					{
 						memcpy(msgSend.ptr, C1_FSM[index].pktRecieved, msgSend.length);

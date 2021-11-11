@@ -9,6 +9,7 @@
 
 #include "C2.h"
 #include "msg.h"
+#include "appConfig.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -25,7 +26,14 @@
 #define FRAME_CDATA_DISCART_LENGTH 8
 
 extern msg_t msg;
-QueueHandle_t queueC2InOut;
+
+typedef struct
+{
+    QueueHandle_t queueC2InOut;
+    uint8_t index;
+} C2_t;
+
+C2_t C2_instances[UARTS_TO_USE];
 
 void C2_task_in(void *param);
 void C2_task_out(void *param);
@@ -34,35 +42,40 @@ void C2_init(void)
 {
     BaseType_t res;
 
-    // Create a task in freeRTOS with dynamic memory
-    res = xTaskCreate(
-        C2_task_in,                   // Function that implements the task.
-        (const char *)"C2_task_in",   // Text name for the task.
-        configMINIMAL_STACK_SIZE * 4, // Stack size in words, not bytes.
-        0,                            // Parameter passed into the task.
-        tskIDLE_PRIORITY + 1,         // Priority at which the task is created.
-        0                             // Pointer to the task created in the system
-    );
-    configASSERT(res == pdPASS);
+    for (uint32_t i = 0; i < UARTS_TO_USE; ++i)
+    {
 
-    // Create a task in freeRTOS with dynamic memory
-    res = xTaskCreate(
-        C2_task_out,                  // Function that implements the task.
-        (const char *)"C2_task_out",  // Text name for the task.
-        configMINIMAL_STACK_SIZE * 4, // Stack size in words, not bytes.
-        0,                            // Parameter passed into the task.
-        tskIDLE_PRIORITY + 1,         // Priority at which the task is created.
-        0                             // Pointer to the task created in the system
-    );
-    configASSERT(res == pdPASS);
+        // Create a task in freeRTOS with dynamic memory
+        res = xTaskCreate(
+            C2_task_in,                   // Function that implements the task.
+            (const char *)"C2_task_in",   // Text name for the task.
+            configMINIMAL_STACK_SIZE * 4, // Stack size in words, not bytes.
+            (void *)i,                    // Parameter passed into the task.
+            tskIDLE_PRIORITY + 1,         // Priority at which the task is created.
+            0                             // Pointer to the task created in the system
+        );
+        configASSERT(res == pdPASS);
 
-    // Crear cola para impresion de puntaje
-    queueC2InOut = xQueueCreate(RECIEVED_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
-    configASSERT(queueC2InOut != NULL);
+        // Create a task in freeRTOS with dynamic memory
+        res = xTaskCreate(
+            C2_task_out,                  // Function that implements the task.
+            (const char *)"C2_task_out",  // Text name for the task.
+            configMINIMAL_STACK_SIZE * 4, // Stack size in words, not bytes.
+            (void *)i,                    // Parameter passed into the task.
+            tskIDLE_PRIORITY + 1,         // Priority at which the task is created.
+            0                             // Pointer to the task created in the system
+        );
+        configASSERT(res == pdPASS);
+
+        // Crear cola para impresion de puntaje
+        C2_instances[i].queueC2InOut = xQueueCreate(RECIEVED_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
+        configASSERT(C2_instances[i].queueC2InOut != NULL);
+    }
 }
 
 void C2_task_in(void *param)
 {
+    uint32_t index = (uint32_t)param;
     queueRecievedFrame_t datosC1C2, datosC2C3, datosC2InOut;
 
     datosC2InOut.length = FRAME_ID_LENGTH;
@@ -84,7 +97,7 @@ void C2_task_in(void *param)
         // Parseo de ID y envio a C2_task_out via queueC2InOut
         datosC2InOut.index = datosC1C2.index;
         memcpy(datosC2InOut.ptr, datosC1C2.ptr + 1, datosC2InOut.length);
-        xQueueSend(queueC2InOut, &datosC2InOut, portMAX_DELAY);
+        xQueueSend(C2_instances[index].queueC2InOut, &datosC2InOut, portMAX_DELAY);
 
         // Parseo de C+Data y envio a C3 via queueC2C3
         datosC2C3.index = datosC1C2.index;
@@ -96,12 +109,13 @@ void C2_task_in(void *param)
 
 void C2_task_out(void *param)
 {
+    uint32_t index = (uint32_t)param;
     queueRecievedFrame_t datosID, datosC3C2;
     uint8_t crc_eof[FRAME_CRCEOF_LENGTH];
     crc_eof[2] = ')';
     while (TRUE)
     {
-        xQueueReceive(queueC2InOut, &datosID, portMAX_DELAY); // Esperamos el ID
+        xQueueReceive(C2_instances[index].queueC2InOut, &datosID, portMAX_DELAY); // Esperamos el ID
         /*taskENTER_CRITICAL();
         printf("C2In to C2Out: ID=");
         for (uint8_t i = 0; i < datosID.length; i++)

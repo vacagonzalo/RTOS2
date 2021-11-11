@@ -9,6 +9,7 @@
 
 #include "C3.h"
 #include "msg.h"
+#include "appConfig.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
