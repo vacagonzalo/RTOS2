@@ -174,8 +174,11 @@ else if (END_FRAME)
 R_C2_10
 > Deberá parsear el campo ID y el CRC
 
-* _ToDo_ _Entregar en clase 4._
-
+* Se pasa el puntero a la memoria y se establece unas contantes para el la capa C3 trabaje sobre el comando y los datos.
+```c
+#define OFFSET_ID 5
+#define DISCART_FRAME 3
+```
 R_C2_11
 > El campo de ID y CRC que llegan en cada paquete estará formado por números ASCII hexadecimales.
 

@@ -27,7 +27,8 @@
 #define VALID_CHAR (c == ' ' || c == '_' || (c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A) || (c >= 0x30 && c <= 0x39))
 #define MAX_AMOUNT_OF_UARTS 3
 #define FRAME_MINIMUN_VALID_LENGTH 9
-
+#define VALID_ID_CRC_CHAR (c >= 0x41 && c <= 0x46) || (c >= 0x30 && c <= 0x39)
+#define ID_LOCATION 5
 typedef enum
 {
 	C1_IDLE,
@@ -130,7 +131,8 @@ void C1_task(void *param)
 			{
 				C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
 				C1_FSM[index].countChars++;
-				if (C1_FSM[index].countChars == FRAME_MAX_LENGTH)
+				if ((C1_FSM[index].countChars == FRAME_MAX_LENGTH) ||
+				   (!(VALID_ID_CRC_CHAR) && C1_FSM[index].countChars < ID_LOCATION))
 				{
 					C1_FSM[index].state = C1_IDLE;
 				}
