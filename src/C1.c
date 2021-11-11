@@ -81,7 +81,7 @@ void C1_init(void)
 		uartInterrupt(uart_configs[i].uartName, true);
 		C1_FSM[i].state = C1_IDLE;
 		C1_FSM[i].countChars = 0;
-		C1_FSM[i].uart_index = 0;
+		C1_FSM[i].uart_index = i;
 		BaseType_t res;
 		// Create a task in freeRTOS with dynamic memory
 		res = xTaskCreate(
