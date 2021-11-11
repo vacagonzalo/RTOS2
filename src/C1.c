@@ -19,6 +19,7 @@
 #include "FreeRTOSConfig.h"
 #include "task.h"
 #include "queue.h"
+#include "qmpool.h"
 
 #define RECIEVED_CHAR_QUEUE_SIZE 10
 #define FRAME_START (c == '(')
@@ -42,8 +43,9 @@ typedef struct
 	C1_states_t state;
 	uint8_t uart_index;
 	uint8_t countChars;
-	uint8_t pktRecieved[FRAME_MAX_LENGTH];
+	tMensaje pktRecieved;
 	QueueHandle_t queueRecievedChar;
+	uint8_t newPacketFlag;
 } C1_FSM_t;
 
 typedef struct
@@ -69,6 +71,7 @@ void C1_task(void *param);
 */
 
 extern msg_t msg[UARTS_TO_USE];
+extern QMPool Pool_memoria;
 
 void C1_init(void)
 {
@@ -82,6 +85,7 @@ void C1_init(void)
 		C1_FSM[i].state = C1_IDLE;
 		C1_FSM[i].countChars = 0;
 		C1_FSM[i].uart_index = i;
+		C1_FSM[i].newPacketFlag = 0;
 		BaseType_t res;
 		// Create a task in freeRTOS with dynamic memory
 		res = xTaskCreate(
@@ -103,6 +107,15 @@ void onRx(void *param)
 {
 	uint32_t index = (uint32_t)param;									 // Casteo del index
 	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;				 // Comenzamos definiendo la variable
+
+	if (C1_FSM[index].newPacketFlag == 0)
+	{
+		// Pedido de memoria al Pool
+		C1_FSM[index].pktRecieved = ( tMensaje ) QMPool_get( &Pool_memoria, 0 ); //pido un bloque del pool
+        configASSERT( C1_FSM[index].pktRecieved  != NULL );			//<-- Gestion de errores
+		C1_FSM[index].newPacketFlag = 1;
+	}
+	
 	uint8_t c = uartRxRead(uart_configs[index].uartName);				 // Selecciona la UART
 	xQueueSendFromISR(C1_FSM[index].queueRecievedChar, &c, &xHigherPriorityTaskWoken); // Manda el char a a la queue
 }

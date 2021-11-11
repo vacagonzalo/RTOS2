@@ -27,10 +27,15 @@ extern "C"
 #define FRAME_MAX_LENGTH 209
 #define DEFAULT_BAUD_RATE 115200
 #define UARTS_TO_USE 1
+#define PACKET_SIZE FRAME_MAX_LENGTH             // Tamanio del paquete
+#define POOL_TOTAL_BLOCKS 10                     // Cuantos paquetes
+#define POOL_SIZE POOL_TOTAL_BLOCKS *PACKET_SIZE //Tamanio total del pool
 
     /*=====[Public function-like macros]=========================================*/
 
     /*=====[Definitions of public data types]====================================*/
+
+    typedef char *tMensaje; // String
 
     /*=====[Prototypes (declarations) of public functions]=======================*/
 

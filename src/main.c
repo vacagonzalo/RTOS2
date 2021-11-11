@@ -22,11 +22,14 @@
 #include "C2.h"
 #include "C3.h"
 #include "appConfig.h"
+#include "qmpool.h"
 /*=====[Definition macros of private constants]==============================*/
 
 /*=====[Definitions of extern global variables]==============================*/
 
 /*=====[Definitions of public global variables]==============================*/
+
+QMPool Pool_memoria; //memory pool (contienen la informacion que necesita la biblioteca qmpool.h)
 
 /*=====[Definitions of private global variables]=============================*/
 
@@ -35,6 +38,12 @@
 int main(void)
 {
    boardInit();
+
+   //	Reservo memoria para el memory pool
+   void *Pool_puntero = (tMensaje)pvPortMalloc(POOL_SIZE * sizeof(char));
+   configASSERT(Pool_puntero != NULL);
+   //	Creo el pool de memoria que va a usarse para la transmision
+   QMPool_init(&Pool_memoria, (tMensaje)Pool_puntero, POOL_SIZE * sizeof(tMensaje), PACKET_SIZE); //Tamanio del segmento de memoria reservado
 
    queue_init();
    C1_init();
