@@ -48,7 +48,7 @@ void myTask(void *taskParmPtr)
    while (TRUE)
    {
       gpioToggle(LED);
-      printf("Blink!\r\n");
+      //printf("Blink!\r\n");
 
       // Send the task to the locked state during xPeriodicity
       // (periodical delay)

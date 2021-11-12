@@ -1,6 +1,7 @@
 # Folders
 out/
 .vscode/
+*.code-workspace
 
 # Prerequisites
 *.d

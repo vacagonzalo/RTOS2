@@ -23,11 +23,12 @@
 #include "qmpool.h"
 
 #define FRAME_ID_LENGTH 4
-#define FRAME_CRCEOF_LENGTH 3
+#define FRAME_CRCEOF_LENGTH 4
 #define FRAME_CDATA_DISCART_LENGTH 8
 
 extern msg_t msg[UARTS_TO_USE];
 extern QMPool Pool_memoria;
+extern uint8_t *pDataToSend;
 
 typedef struct
 {
@@ -90,7 +91,7 @@ void C2_task_in(void *param)
         configASSERT(datosC1C2.ptr != NULL);                    //<-- Gestion de errores
 
         xQueueReceive(msg[index].queueC1C2, datosC1C2.ptr, portMAX_DELAY); // Esperamos el caracter
-        datosC1C2.length = (uint8_t) datosC1C2.ptr[FRAME_MAX_LENGTH];
+        datosC1C2.length = (uint8_t)datosC1C2.ptr[FRAME_MAX_LENGTH];
 
         taskENTER_CRITICAL();
         printf("C1 to C2: ");
@@ -121,6 +122,7 @@ void C2_task_out(void *param)
     queueRecievedFrame_t datosID, datosC3C2;
     uint8_t crc_eof[FRAME_CRCEOF_LENGTH];
     crc_eof[2] = ')';
+    crc_eof[3] = '\0';
     while (TRUE)
     {
         xQueueReceive(C2_instances[index].queueC2InOut, &datosID, portMAX_DELAY); // Esperamos el ID
@@ -140,24 +142,38 @@ void C2_task_out(void *param)
         crc_eof[1] = '2';
 
         taskENTER_CRITICAL();
-        printf("C2Out: ");
-        for (uint8_t i = 0; i < datosC3C2.length; i++)
-        {
-            printf("%c", datosC3C2.ptr[i]);
-        }
+        //printf("C2Out: ");
+        //for (uint8_t i = 0; i < datosC3C2.length; i++)
+        //{
+        //    printf("%c", datosC3C2.ptr[i]);
+        //}
+
+        /*
+void displayWrite( char const * str )
+{
+	while(*str)
+	{
+		writeDisplayByCode(RS_DATA, *str++);
+	}
+}
+*/
         // CRC y EOF
         for (uint8_t i = 0; i < FRAME_CRCEOF_LENGTH; i++)
         {
-            printf("%c", crc_eof[i]);
+            datosC3C2.ptr[datosC3C2.length + i] = crc_eof[i];
         }
+        pDataToSend = datosC3C2.ptr;
+        //uartCallbackSet(UART_USB, UART_TRANSMITER_FREE, uartUsbSendCallback, NULL);
+        uartSetPendingInterrupt(UART_USB);
         // UART Index
-        printf("\r\n");
+        //printf("\r\n");
         //printf(" UART=%d\r\n", datosC3C2.index);
         taskEXIT_CRITICAL();
 
         // TODO: Reemplazar el printf por una cola que envíá al un IRS para enviar el dato de salida.
 
-        // Libera memoria
-        vPortFree(datosC3C2.ptr);
+        // Libero el bloque de memoria que ya fue trasmitido
+        QMPool_put(&Pool_memoria, datosC3C2.ptr);
+        datosC3C2.ptr = NULL;
     }
 }
