@@ -18,6 +18,7 @@
 #include "FreeRTOSConfig.h"
 #include "task.h"
 #include "queue.h"
+#include "appConfig.h"
 /*=====[C++ - begin]=========================================================*/
 
 #ifdef __cplusplus
@@ -35,7 +36,7 @@ extern "C"
     {
         uint32_t index;
         uint8_t length;
-        uint8_t *ptr;
+        tMensaje ptr;
     } queueRecievedFrame_t;
 
     typedef struct

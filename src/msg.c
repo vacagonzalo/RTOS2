@@ -6,7 +6,7 @@ void queue_init(void)
     for (uint32_t i = 0; i < UARTS_TO_USE; ++i)
     {
         // Crear cola para compartir los frames entre capas
-        msg[i].queueC1C2 = xQueueCreate(RECIEVED_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
+        msg[i].queueC1C2 = xQueueCreate(RECIEVED_FRAME_QUEUE_SIZE, (PACKET_SIZE) * sizeof(uint8_t));
         configASSERT(msg[i].queueC1C2 != NULL);
         msg[i].queueC2C3 = xQueueCreate(RECIEVED_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
         configASSERT(msg[i].queueC2C3 != NULL);

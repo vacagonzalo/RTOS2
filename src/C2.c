@@ -20,12 +20,14 @@
 #include "FreeRTOSConfig.h"
 #include "task.h"
 #include "queue.h"
+#include "qmpool.h"
 
 #define FRAME_ID_LENGTH 4
 #define FRAME_CRCEOF_LENGTH 3
 #define FRAME_CDATA_DISCART_LENGTH 8
 
 extern msg_t msg[UARTS_TO_USE];
+extern QMPool Pool_memoria;
 
 typedef struct
 {
@@ -76,31 +78,37 @@ void C2_init(void)
 void C2_task_in(void *param)
 {
     uint32_t index = (uint32_t)param;
-    queueRecievedFrame_t datosC1C2, datosC2C3, datosC2InOut;
-
+    queueRecievedFrame_t datosC2C3, datosC2InOut, datosC1C2;
     datosC2InOut.length = FRAME_ID_LENGTH;
     datosC2InOut.ptr = pvPortMalloc(FRAME_ID_LENGTH * sizeof(uint8_t));
     configASSERT(datosC2InOut.ptr != NULL);
 
     while (TRUE)
     {
-        xQueueReceive(msg[index].queueC1C2, &datosC1C2, portMAX_DELAY); // Esperamos el caracter
-        /*taskENTER_CRITICAL();
+        // Pedido de memoria al Pool
+        datosC1C2.ptr = (tMensaje)QMPool_get(&Pool_memoria, 0); //pido un bloque del pool
+        configASSERT(datosC1C2.ptr != NULL);                    //<-- Gestion de errores
+
+        xQueueReceive(msg[index].queueC1C2, datosC1C2.ptr, portMAX_DELAY); // Esperamos el caracter
+        datosC1C2.length = (uint8_t) datosC1C2.ptr[FRAME_MAX_LENGTH];
+
+        taskENTER_CRITICAL();
         printf("C1 to C2: ");
         for (uint8_t i = 0; i < datosC1C2.length; i++)
         {
             printf("%c", datosC1C2.ptr[i]);
         }
-        printf(" UART=%d\r\n", datosC1C2.index);
-        taskEXIT_CRITICAL();*/
+        printf("\r\n");
+        //printf(" UART=%d\r\n", datosC1C2.index);
+        taskEXIT_CRITICAL();
 
         // Parseo de ID y envio a C2_task_out via queueC2InOut
-        datosC2InOut.index = datosC1C2.index;
+        //datosC2InOut.index = datosC1C2.index;
         memcpy(datosC2InOut.ptr, datosC1C2.ptr + 1, datosC2InOut.length);
         xQueueSend(C2_instances[index].queueC2InOut, &datosC2InOut, portMAX_DELAY);
 
         // Parseo de C+Data y envio a C3 via queueC2C3
-        datosC2C3.index = datosC1C2.index;
+        //datosC2C3.index = datosC1C2.index;
         datosC2C3.length = datosC1C2.length;
         datosC2C3.ptr = datosC1C2.ptr;
         xQueueSend(msg[index].queueC2C3, &datosC2C3, portMAX_DELAY);
@@ -116,14 +124,15 @@ void C2_task_out(void *param)
     while (TRUE)
     {
         xQueueReceive(C2_instances[index].queueC2InOut, &datosID, portMAX_DELAY); // Esperamos el ID
-        /*taskENTER_CRITICAL();
+        taskENTER_CRITICAL();
         printf("C2In to C2Out: ID=");
         for (uint8_t i = 0; i < datosID.length; i++)
         {
             printf("%c", datosID.ptr[i]);
         }
-        printf(" UART=%d\r\n", datosID.index);
-        taskEXIT_CRITICAL();*/
+        printf("\r\n");
+        //printf(" UART=%d\r\n", datosID.index);
+        taskEXIT_CRITICAL();
 
         xQueueReceive(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
         // calculo de CRC a enviar
@@ -142,7 +151,8 @@ void C2_task_out(void *param)
             printf("%c", crc_eof[i]);
         }
         // UART Index
-        printf(" UART=%d\r\n", datosC3C2.index);
+        printf("\r\n");
+        //printf(" UART=%d\r\n", datosC3C2.index);
         taskEXIT_CRITICAL();
 
         // TODO: Reemplazar el printf por una cola que envíá al un IRS para enviar el dato de salida.

@@ -19,7 +19,6 @@
 #include "FreeRTOSConfig.h"
 #include "task.h"
 #include "queue.h"
-#include "qmpool.h"
 
 #define RECIEVED_CHAR_QUEUE_SIZE 10
 #define FRAME_START (c == '(')
@@ -43,9 +42,8 @@ typedef struct
 	C1_states_t state;
 	uint8_t uart_index;
 	uint8_t countChars;
-	tMensaje pktRecieved;
+	uint8_t pktRecieved[FRAME_MAX_LENGTH + 1];
 	QueueHandle_t queueRecievedChar;
-	uint8_t newPacketFlag;
 } C1_FSM_t;
 
 typedef struct
@@ -71,7 +69,6 @@ void C1_task(void *param);
 */
 
 extern msg_t msg[UARTS_TO_USE];
-extern QMPool Pool_memoria;
 
 void C1_init(void)
 {
@@ -85,102 +82,61 @@ void C1_init(void)
 		C1_FSM[i].state = C1_IDLE;
 		C1_FSM[i].countChars = 0;
 		C1_FSM[i].uart_index = i;
-		C1_FSM[i].newPacketFlag = 0;
-		BaseType_t res;
-		// Create a task in freeRTOS with dynamic memory
-		res = xTaskCreate(
-			C1_task,					  // Function that implements the task.
-			(const char *)"C1_task",	  // Text name for the task.
-			configMINIMAL_STACK_SIZE * 4, // Stack size in words, not bytes.
-			(void *)i,					  // Parameter passed into the task.
-			tskIDLE_PRIORITY + 1,		  // Priority at which the task is created.
-			0							  // Pointer to the task created in the system
-		);
-		configASSERT(res == pdPASS);
-		// Crear cola para recepcion de caracteres
-		C1_FSM[i].queueRecievedChar = xQueueCreate(RECIEVED_CHAR_QUEUE_SIZE, sizeof(uint8_t));
-		configASSERT(C1_FSM[i].queueRecievedChar != NULL);
 	}
 }
 
 void onRx(void *param)
 {
-	uint32_t index = (uint32_t)param;									 // Casteo del index
-	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;				 // Comenzamos definiendo la variable
+	uint32_t index = (uint32_t)param;					  // Casteo del index
+	static BaseType_t xHigherPriorityTaskWoken = pdFALSE; // Comenzamos definiendo la variable
 
-	if (C1_FSM[index].newPacketFlag == 0)
+	uint8_t c = uartRxRead(uart_configs[index].uartName); // Selecciona la UART
+
+	switch (C1_FSM[index].state)
 	{
-		// Pedido de memoria al Pool
-		C1_FSM[index].pktRecieved = ( tMensaje ) QMPool_get( &Pool_memoria, 0 ); //pido un bloque del pool
-        configASSERT( C1_FSM[index].pktRecieved  != NULL );			//<-- Gestion de errores
-		C1_FSM[index].newPacketFlag = 1;
-	}
-	
-	uint8_t c = uartRxRead(uart_configs[index].uartName);				 // Selecciona la UART
-	xQueueSendFromISR(C1_FSM[index].queueRecievedChar, &c, &xHigherPriorityTaskWoken); // Manda el char a a la queue
-}
-
-void C1_task(void *param)
-{
-	uint32_t index = (uint32_t)param; // Casteo del index
-	uint8_t c;
-	queueRecievedFrame_t msgSend;
-
-	while (TRUE)
-	{
-		xQueueReceive(C1_FSM[index].queueRecievedChar, &c, portMAX_DELAY); // Esperamos el caracter
-		switch (C1_FSM[index].state)
+	case C1_IDLE:
+		if (FRAME_START)
 		{
-		case C1_IDLE:
-			if (FRAME_START)
-			{
-				C1_FSM[index].state = C1_ACQUIRING;
-				C1_FSM[index].countChars = 0;
-				C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
-				C1_FSM[index].countChars++;
-			}
-			break;
-		case C1_ACQUIRING:
-			if (VALID_CHAR)
-			{
-				C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
-				C1_FSM[index].countChars++;
-				if ((C1_FSM[index].countChars == FRAME_MAX_LENGTH) ||
-					(!(VALID_ID_CHAR) && C1_FSM[index].countChars < ID_LOCATION))
-				{
-					C1_FSM[index].state = C1_IDLE;
-				}
-			}
-			else if (FRAME_START)
-			{
-				C1_FSM[index].countChars = 1;
-			}
-			else if (END_FRAME)
-			{
-				if ((C1_FSM[index].countChars > FRAME_MINIMUN_VALID_LENGTH - 1) &&
-					(VALID_CRC_CHAR1) && (VALID_CRC_CHAR2))
-				{ // Mandar la cola de mensajes
-					msgSend.index = index;
-					C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
-					C1_FSM[index].countChars++;
-					msgSend.length = C1_FSM[index].countChars;
-					msgSend.ptr = pvPortMalloc(FRAME_MAX_LENGTH * sizeof(uint8_t));
-					if (msgSend.ptr != NULL)
-					{
-						memcpy(msgSend.ptr, C1_FSM[index].pktRecieved, msgSend.length);
-						xQueueSend(msg[index].queueC1C2, &msgSend, portMAX_DELAY);
-					}
-				}
-				C1_FSM[index].state = C1_IDLE;
-			}
-			else
-			{
-				C1_FSM[index].state = C1_IDLE;
-			}
-			break;
-		default:
-			C1_FSM[index].state = C1_IDLE;
-			break;
+			C1_FSM[index].state = C1_ACQUIRING;
+			C1_FSM[index].countChars = 0;
+			C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
+			C1_FSM[index].countChars++;
 		}
+		break;
+	case C1_ACQUIRING:
+		if (VALID_CHAR)
+		{
+			C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
+			C1_FSM[index].countChars++;
+			if ((C1_FSM[index].countChars == FRAME_MAX_LENGTH) ||
+				(!(VALID_ID_CHAR) && C1_FSM[index].countChars < ID_LOCATION))
+			{
+				C1_FSM[index].state = C1_IDLE;
+			}
+		}
+		else if (FRAME_START)
+		{
+			C1_FSM[index].countChars = 1;
+		}
+		else if (END_FRAME)
+		{
+			if ((C1_FSM[index].countChars > FRAME_MINIMUN_VALID_LENGTH - 1) &&
+				(VALID_CRC_CHAR1) && (VALID_CRC_CHAR2))
+			{ // Mandar la cola de mensajes
+				C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
+				C1_FSM[index].countChars++;
+				C1_FSM[index].pktRecieved[FRAME_MAX_LENGTH] = C1_FSM[index].countChars;
+				xQueueSendFromISR(msg[index].queueC1C2, C1_FSM[index].pktRecieved, &xHigherPriorityTaskWoken);
+			}
+			C1_FSM[index].state = C1_IDLE;
+		}
+		else
+		{
+			C1_FSM[index].state = C1_IDLE;
+		}
+		break;
+	default:
+		C1_FSM[index].state = C1_IDLE;
+		break;
 	}
 }
