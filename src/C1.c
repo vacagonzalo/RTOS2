@@ -46,19 +46,13 @@ typedef struct
 	QueueHandle_t queueRecievedChar;
 } C1_FSM_t;
 
-typedef struct
-{
-	uartMap_t uartName;
-	uint32_t baudRate;
-} t_UART_config;
-
 const t_UART_config uart_configs[] = {
 	{.uartName = UART_USB, .baudRate = DEFAULT_BAUD_RATE}};
 
 C1_FSM_t C1_FSM[UARTS_TO_USE];
 
 void onRx(void *param);
-void uartUsbSendCallback(void *unused);
+void uartUsbSendCallback(void *param);
 void C1_task(void *param);
 
 /*
@@ -71,7 +65,7 @@ void C1_task(void *param);
 
 extern msg_t msg[UARTS_TO_USE];
 
-uint8_t *pDataToSend = "Bienvenido al mundo loco de FreeRTOS.\r\n";
+uint8_t *pDataToSend;
 
 void C1_init(void)
 {
@@ -81,9 +75,9 @@ void C1_init(void)
 			break;
 		uartConfig(uart_configs[i].uartName, uart_configs[i].baudRate);
 		uartCallbackSet(uart_configs[i].uartName, UART_RECEIVE, onRx, (void *)i);
-		uartCallbackSet(uart_configs[i].uartName, UART_TRANSMITER_FREE, uartUsbSendCallback, NULL);
+		uartCallbackSet(uart_configs[i].uartName, UART_TRANSMITER_FREE, uartUsbSendCallback, (void *)i);
 		uartInterrupt(uart_configs[i].uartName, true);
-		uartSetPendingInterrupt(uart_configs[i].uartName);
+		//uartSetPendingInterrupt(uart_configs[i].uartName);
 		C1_FSM[i].state = C1_IDLE;
 		C1_FSM[i].countChars = 0;
 		C1_FSM[i].uart_index = i;
@@ -147,20 +141,12 @@ void onRx(void *param)
 }
 
 // Envio a la PC desde la UART_USB hasta NULL y deshabilito Callback
-void uartUsbSendCallback(void *unused)
+void uartUsbSendCallback(void *param)
 {
-	while (*pDataToSend != '\0')
-	{
-		if (uartTxReady(UART_USB))
-		{
-			uartTxWrite(UART_USB, *pDataToSend++);
-		}
-		else
-			break;
-	}
-	if (*pDataToSend == '\0')
-	{
-		uartClearPendingInterrupt(UART_USB);
-		//uartCallbackClr(UART_USB, UART_TRANSMITER_FREE);
-	}
+	uint32_t index = (uint32_t)param;
+	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+	uartWriteString(uart_configs[index].uartName, pDataToSend);
+	uartCallbackClr(uart_configs[index].uartName, UART_TRANSMITER_FREE);
+	xSemaphoreGiveFromISR(msg[index].semphrC2ISR ,&xHigherPriorityTaskWoken);
 }

@@ -59,7 +59,6 @@ void C3_task(void *param)
             printf("%c", datosC2C3.ptr[i]);
         }
         printf("\r\n");
-        //printf(" UART=%d\r\n", datosC2C3.index);
         taskEXIT_CRITICAL();
 
         // Dummy Process
@@ -69,8 +68,7 @@ void C3_task(void *param)
         }
 
         // envio a C2 via queueC3C2
-        //datosC3C2.index = datosC2C3.index;
-        datosC3C2.length = datosC2C3.length-DISCART_FRAME;
+        datosC3C2.length = datosC2C3.length - DISCART_FRAME;
         datosC3C2.ptr = datosC2C3.ptr;
         xQueueSend(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);
     }

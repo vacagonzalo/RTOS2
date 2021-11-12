@@ -20,8 +20,8 @@
 extern "C"
 {
 #endif
-//#include <inttypes.h>
-/*=====[Definition macros of public constants]===============================*/
+    //#include <inttypes.h>
+    /*=====[Definition macros of public constants]===============================*/
 
     /*=====[Public function-like macros]=========================================*/
 

@@ -18,6 +18,7 @@
 #include "FreeRTOSConfig.h"
 #include "task.h"
 #include "queue.h"
+#include "semphr.h"
 #include "appConfig.h"
 /*=====[C++ - begin]=========================================================*/
 
@@ -44,6 +45,7 @@ extern "C"
         QueueHandle_t queueC1C2;
         QueueHandle_t queueC2C3;
         QueueHandle_t queueC3C2;
+        SemaphoreHandle_t semphrC2ISR;
     } msg_t;
 
     /*=====[Prototypes (declarations) of public functions]=======================*/

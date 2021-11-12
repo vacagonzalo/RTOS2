@@ -12,5 +12,7 @@ void queue_init(void)
         configASSERT(msg[i].queueC2C3 != NULL);
         msg[i].queueC3C2 = xQueueCreate(RECIEVED_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
         configASSERT(msg[i].queueC3C2 != NULL);
+        msg[i].semphrC2ISR = xSemaphoreCreateBinary();
+        configASSERT(msg[i].semphrC2ISR != NULL);
     }
 }

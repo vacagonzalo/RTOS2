@@ -48,10 +48,8 @@ void myTask(void *taskParmPtr)
    while (TRUE)
    {
       gpioToggle(LED);
-      //printf("Blink!\r\n");
-
+     
       // Send the task to the locked state during xPeriodicity
-      // (periodical delay)
       vTaskDelayUntil(&xLastWakeTime, xPeriodicity);
    }
 }

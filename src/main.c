@@ -63,6 +63,8 @@ int main(void)
    );
    configASSERT(res == pdPASS);
 
+   printf("Bienvenido al mundo loco de FreeRTOS.\r\n");
+
    vTaskStartScheduler(); // Initialize scheduler
 
    while (true)

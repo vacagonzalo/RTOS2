@@ -21,6 +21,7 @@
 #include "task.h"
 #include "queue.h"
 #include "qmpool.h"
+#include "semphr.h"
 
 #define FRAME_ID_LENGTH 4
 #define FRAME_CRCEOF_LENGTH 4
@@ -29,6 +30,8 @@
 extern msg_t msg[UARTS_TO_USE];
 extern QMPool Pool_memoria;
 extern uint8_t *pDataToSend;
+extern t_UART_config uart_configs[];
+extern void uartUsbSendCallback(void *param);
 
 typedef struct
 {
@@ -100,16 +103,13 @@ void C2_task_in(void *param)
             printf("%c", datosC1C2.ptr[i]);
         }
         printf("\r\n");
-        //printf(" UART=%d\r\n", datosC1C2.index);
         taskEXIT_CRITICAL();
 
         // Parseo de ID y envio a C2_task_out via queueC2InOut
-        //datosC2InOut.index = datosC1C2.index;
         memcpy(datosC2InOut.ptr, datosC1C2.ptr + 1, datosC2InOut.length);
         xQueueSend(C2_instances[index].queueC2InOut, &datosC2InOut, portMAX_DELAY);
 
         // Parseo de C+Data y envio a C3 via queueC2C3
-        //datosC2C3.index = datosC1C2.index;
         datosC2C3.length = datosC1C2.length;
         datosC2C3.ptr = datosC1C2.ptr;
         xQueueSend(msg[index].queueC2C3, &datosC2C3, portMAX_DELAY);
@@ -133,7 +133,6 @@ void C2_task_out(void *param)
             printf("%c", datosID.ptr[i]);
         }
         printf("\r\n");
-        //printf(" UART=%d\r\n", datosID.index);
         taskEXIT_CRITICAL();
 
         xQueueReceive(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
@@ -141,36 +140,20 @@ void C2_task_out(void *param)
         crc_eof[0] = 'C';
         crc_eof[1] = '2';
 
-        taskENTER_CRITICAL();
-        //printf("C2Out: ");
-        //for (uint8_t i = 0; i < datosC3C2.length; i++)
-        //{
-        //    printf("%c", datosC3C2.ptr[i]);
-        //}
-
-        /*
-void displayWrite( char const * str )
-{
-	while(*str)
-	{
-		writeDisplayByCode(RS_DATA, *str++);
-	}
-}
-*/
         // CRC y EOF
         for (uint8_t i = 0; i < FRAME_CRCEOF_LENGTH; i++)
         {
             datosC3C2.ptr[datosC3C2.length + i] = crc_eof[i];
         }
         pDataToSend = datosC3C2.ptr;
-        //uartCallbackSet(UART_USB, UART_TRANSMITER_FREE, uartUsbSendCallback, NULL);
-        uartSetPendingInterrupt(UART_USB);
-        // UART Index
-        //printf("\r\n");
-        //printf(" UART=%d\r\n", datosC3C2.index);
-        taskEXIT_CRITICAL();
+        uartCallbackSet(uart_configs[index].uartName, UART_TRANSMITER_FREE, uartUsbSendCallback, (void *)index);
+        uartSetPendingInterrupt(uart_configs[index].uartName);
 
-        // TODO: Reemplazar el printf por una cola que envíá al un IRS para enviar el dato de salida.
+        // Espera semaforo para terminar de enviar el mensaje por ISR
+        xSemaphoreTake(msg[index].semphrC2ISR , portMAX_DELAY);
+
+        // Demora para que pueda imprimir SACAR!!!!
+        vTaskDelay(1);
 
         // Libero el bloque de memoria que ya fue trasmitido
         QMPool_put(&Pool_memoria, datosC3C2.ptr);
