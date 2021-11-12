@@ -52,22 +52,22 @@ void C3_task(void *param)
     while (TRUE)
     {
         xQueueReceive(msg[index].queueC2C3, &datosC2C3, portMAX_DELAY); // Esperamos el caracter
-        taskENTER_CRITICAL();
-        printf("C2In to C3: CD=");
-        for (uint8_t i = OFFSET_ID; i < datosC2C3.length - DISCART_FRAME; i++)
-        {
-            printf("%c", datosC2C3.ptr[i]);
-        }
-        printf("\r\n");
-        taskEXIT_CRITICAL();
+        // taskENTER_CRITICAL();
+        // printf("C2In to C3: CD=");
+        // for (uint8_t i = OFFSET_ID; i < datosC2C3.length - DISCART_FRAME; i++)
+        // {
+        //     printf("%c", datosC2C3.ptr[i]);
+        // }
+        // printf("\r\n");
+        // taskEXIT_CRITICAL();
 
-        // Dummy Process
+        //Dummy Process
         for (uint8_t i = OFFSET_ID; i < datosC2C3.length - DISCART_FRAME; i++)
         {
             datosC2C3.ptr[i]++;
         }
 
-        // envio a C2 via queueC3C2
+        // Envio a C2 via queueC3C2
         datosC3C2.length = datosC2C3.length - DISCART_FRAME;
         datosC3C2.ptr = datosC2C3.ptr;
         xQueueSend(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);

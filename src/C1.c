@@ -75,9 +75,8 @@ void C1_init(void)
 			break;
 		uartConfig(uart_configs[i].uartName, uart_configs[i].baudRate);
 		uartCallbackSet(uart_configs[i].uartName, UART_RECEIVE, onRx, (void *)i);
-		uartCallbackSet(uart_configs[i].uartName, UART_TRANSMITER_FREE, uartUsbSendCallback, (void *)i);
 		uartInterrupt(uart_configs[i].uartName, true);
-		//uartSetPendingInterrupt(uart_configs[i].uartName);
+
 		C1_FSM[i].state = C1_IDLE;
 		C1_FSM[i].countChars = 0;
 		C1_FSM[i].uart_index = i;
@@ -146,7 +145,9 @@ void uartUsbSendCallback(void *param)
 	uint32_t index = (uint32_t)param;
 	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
+	uartWriteString(uart_configs[index].uartName, "C2 to C1: ");
 	uartWriteString(uart_configs[index].uartName, pDataToSend);
+	uartWriteString(uart_configs[index].uartName, "\n\r");
 	uartCallbackClr(uart_configs[index].uartName, UART_TRANSMITER_FREE);
-	xSemaphoreGiveFromISR(msg[index].semphrC2ISR ,&xHigherPriorityTaskWoken);
+	xSemaphoreGiveFromISR(msg[index].semphrC2ISR, &xHigherPriorityTaskWoken);
 }

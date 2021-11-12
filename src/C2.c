@@ -126,14 +126,14 @@ void C2_task_out(void *param)
     while (TRUE)
     {
         xQueueReceive(C2_instances[index].queueC2InOut, &datosID, portMAX_DELAY); // Esperamos el ID
-        taskENTER_CRITICAL();
-        printf("C2In to C2Out: ID=");
-        for (uint8_t i = 0; i < datosID.length; i++)
-        {
-            printf("%c", datosID.ptr[i]);
-        }
-        printf("\r\n");
-        taskEXIT_CRITICAL();
+        // taskENTER_CRITICAL();
+        // printf("C2In to C2Out: ID=");
+        // for (uint8_t i = 0; i < datosID.length; i++)
+        // {
+        //     printf("%c", datosID.ptr[i]);
+        // }
+        // printf("\r\n");
+        // taskEXIT_CRITICAL();
 
         xQueueReceive(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
         // calculo de CRC a enviar
@@ -150,10 +150,7 @@ void C2_task_out(void *param)
         uartSetPendingInterrupt(uart_configs[index].uartName);
 
         // Espera semaforo para terminar de enviar el mensaje por ISR
-        xSemaphoreTake(msg[index].semphrC2ISR , portMAX_DELAY);
-
-        // Demora para que pueda imprimir SACAR!!!!
-        vTaskDelay(1);
+        xSemaphoreTake(msg[index].semphrC2ISR, portMAX_DELAY);
 
         // Libero el bloque de memoria que ya fue trasmitido
         QMPool_put(&Pool_memoria, datosC3C2.ptr);
