@@ -246,7 +246,7 @@ for (uint8_t i = 0; i < FRAME_CRCEOF_LENGTH; i++)
 R_C2_14
 > Deberá procesar en contexto de ISR todos los bytes salientes en C2
 
-* _ToDo_ _Entregar en clase 4._
+* Queda implementado el manejo de la uart de salida por interrupciones.
 
 R_C2_15
 > Al finalizar la transmisión, se deberá liberar la memoria dinámica utilizada para la transacción.
@@ -254,8 +254,9 @@ R_C2_15
 * Se libera la memoria utilizada luego de enviar el frame en C2_task_out.
 
 ```c
-// Libera memoria
-vPortFree(datosC3C2.ptr);
+// Libero el bloque de memoria que ya fue trasmitido
+QMPool_put(&Pool_memoria, datosC3C2.ptr);
+datosC3C2.ptr = NULL;
 ```
 
 R_C2_16
