@@ -61,11 +61,11 @@ void C3_task(void *param)
         // printf("\r\n");
         // taskEXIT_CRITICAL();
 
-        //Dummy Process
-        for (uint8_t i = OFFSET_ID; i < datosC2C3.length - DISCART_FRAME; i++)
-        {
-            datosC2C3.ptr[i]++;
-        }
+        // //Dummy Process
+        // for (uint8_t i = OFFSET_ID; i < datosC2C3.length - DISCART_FRAME; i++)
+        // {
+        //     datosC2C3.ptr[i]++;
+        // }
 
         // Envio a C2 via queueC3C2
         datosC3C2.length = datosC2C3.length - DISCART_FRAME;
