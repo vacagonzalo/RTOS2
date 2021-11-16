@@ -46,8 +46,7 @@ int main(void)
    QMPool_init(&Pool_memoria, (tMensaje)Pool_puntero, POOL_SIZE * sizeof(tMensaje), PACKET_SIZE); //Tamanio del segmento de memoria reservado
 
    queue_init();
-   t_UART_config uart = {.uartName = UART_USB, .baudRate = DEFAULT_BAUD_RATE};
-   C1_init(&uart);
+   C1_init();
    C2_init();
    C3_init();
 
