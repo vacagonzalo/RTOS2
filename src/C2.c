@@ -96,14 +96,14 @@ void C2_task_in(void *param)
         xQueueReceive(msg[index].queueC1C2, datosC1C2.ptr, portMAX_DELAY); // Esperamos el caracter
         datosC1C2.length = (uint8_t)datosC1C2.ptr[FRAME_MAX_LENGTH];
 
-        taskENTER_CRITICAL();
+        /*taskENTER_CRITICAL();
         printf("C1 to C2: ");
         for (uint8_t i = 0; i < datosC1C2.length; i++)
         {
             printf("%c", datosC1C2.ptr[i]);
         }
         printf("\r\n");
-        taskEXIT_CRITICAL();
+        taskEXIT_CRITICAL();*/
 
         // Parseo de ID y envio a C2_task_out via queueC2InOut
         memcpy(datosC2InOut.ptr, datosC1C2.ptr + 1, datosC2InOut.length);
