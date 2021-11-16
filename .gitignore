@@ -2,6 +2,7 @@
 out/
 .vscode/
 *.code-workspace
+__pycache__/
 
 # Prerequisites
 *.d
