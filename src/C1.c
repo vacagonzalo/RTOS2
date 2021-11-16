@@ -31,8 +31,20 @@
 #define VALID_CRC_CHAR1 ((C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 2] >= 0x41 && C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 2] <= 0x46) || (C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 2] >= 0x30 && C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 2] <= 0x39))
 #define VALID_CRC_CHAR2 ((C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 1] >= 0x41 && C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 1] <= 0x46) || (C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 1] >= 0x30 && C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 1] <= 0x39))
 
+typedef enum
+{
+	C1_IDLE,
+	C1_ACQUIRING
+} C1_states_t;
 
-
+typedef struct
+{
+	C1_states_t state;
+	uint8_t uart_index;
+	uint8_t countChars;
+	uint8_t pktRecieved[FRAME_MAX_LENGTH + 1];
+	QueueHandle_t queueRecievedChar;
+} C1_FSM_t;
 
 const t_UART_config uart_configs[] = {
 	{.uartName = UART_USB, .baudRate = DEFAULT_BAUD_RATE}};
@@ -55,23 +67,28 @@ extern msg_t msg[UARTS_TO_USE];
 
 uint8_t *pDataToSend;
 
-void C1_init(t_UART_config *config)
+void C1_init(void)
 {
-	uartConfig(config->uartName, config->baudRate);
-	uartCallbackSet(config->uartName, UART_RECEIVE, onRx, (void *)config);
-	uartInterrupt(config->uartName, true);
+	for (uint32_t i = 0; i < UARTS_TO_USE; ++i)
+	{
+		if (i > MAX_AMOUNT_OF_UARTS)
+			break;
+		uartConfig(uart_configs[i].uartName, uart_configs[i].baudRate);
+		uartCallbackSet(uart_configs[i].uartName, UART_RECEIVE, onRx, (void *)i);
+		uartInterrupt(uart_configs[i].uartName, true);
 
-	C1_FSM[i].state = C1_IDLE;
-	C1_FSM[i].countChars = 0;
-	C1_FSM[i].uart_index = i;
+		C1_FSM[i].state = C1_IDLE;
+		C1_FSM[i].countChars = 0;
+		C1_FSM[i].uart_index = i;
+	}
 }
 
 void onRx(void *param)
 {
-	t_UART_config *config = (t_UART_config *)param;					  // Casteo del index
+	uint32_t index = (uint32_t)param;					  // Casteo del index
 	static BaseType_t xHigherPriorityTaskWoken = pdFALSE; // Comenzamos definiendo la variable
 
-	uint8_t c = uartRxRead(config->uartName); // Selecciona la UART
+	uint8_t c = uartRxRead(uart_configs[index].uartName); // Selecciona la UART
 
 	switch (C1_FSM[index].state)
 	{
