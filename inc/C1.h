@@ -20,18 +20,43 @@
 extern "C"
 {
 #endif
+#include "appConfig.h"
+#include "qmpool.h"
 #include <inttypes.h>
 /*=====[Definition macros of public constants]===============================*/
-#define FRAME_MAX_LENGTH 209
 #define RECIEVED_CHAR_QUEUE_SIZE 10
 
     /*=====[Public function-like macros]=========================================*/
 
     /*=====[Definitions of public data types]====================================*/
 
+    typedef enum
+    {
+        C1_IDLE,
+        C1_ACQUIRING
+    } C1_states_t;
+
+    typedef struct
+    {
+        C1_states_t state;
+        uint8_t uart_index;
+        uint8_t countChars;
+        uint8_t pktRecieved[FRAME_MAX_LENGTH + 1];
+        QueueHandle_t queueRecievedChar;
+    } C1_FSM_t;
+
+    typedef struct
+    {
+        t_UART_config config;
+        C1_FSM_t fsm;
+
+        QMPool Pool_memoria;
+        char * Pool_puntero;
+    } C1_t;
+
     /*=====[Prototypes (declarations) of public functions]=======================*/
 
-    void C1_init(void);
+    void C1_init(t_UART_config *config);
 
     /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 
