@@ -1,6 +1,7 @@
 from serial import Serial
 import time
 
+
 def main():
     with Serial('/dev/ttyUSB1', 115200) as s:
         s.write(b'(0000alohaFF)')
