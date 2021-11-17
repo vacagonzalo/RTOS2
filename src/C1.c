@@ -145,7 +145,7 @@ void onRx(void *param)
 	}
 }
 
-// Envio a la PC desde la UART_USB hasta NULL y deshabilito Callback
+// Envio a la PC desde la UART hasta NULL y deshabilito Callback
 void uartUsbSendCallback(void *param)
 {
 	uint32_t index = (uint32_t)param;
@@ -160,7 +160,6 @@ void uartUsbSendCallback(void *param)
 
 void onTime( TimerHandle_t xTimer)
 {
-	uint32_t index = (uint32_t) pvTimerGetTimerID( xTimer );
-	
+	uint32_t index = (uint32_t) pvTimerGetTimerID( xTimer );	
 	C1_FSM[index].state = C1_IDLE;
 }
