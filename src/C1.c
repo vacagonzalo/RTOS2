@@ -19,6 +19,7 @@
 #include "FreeRTOSConfig.h"
 #include "task.h"
 #include "queue.h"
+#include "timers.h"
 
 #define RECIEVED_CHAR_QUEUE_SIZE 10
 #define FRAME_START (c == '(')
@@ -40,10 +41,9 @@ typedef enum
 typedef struct
 {
 	C1_states_t state;
-	uint8_t uart_index;
 	uint8_t countChars;
 	uint8_t pktRecieved[FRAME_MAX_LENGTH + 1];
-	QueueHandle_t queueRecievedChar;
+	TimerHandle_t timeOut;
 } C1_FSM_t;
 
 const t_UART_config uart_configs[] = {
@@ -54,6 +54,7 @@ C1_FSM_t C1_FSM[UARTS_TO_USE];
 void onRx(void *param);
 void uartUsbSendCallback(void *param);
 void C1_task(void *param);
+void onTime( TimerHandle_t xTimer);
 
 /*
    	   UART_GPIO = 0, // Hardware UART0 via GPIO1(TX), GPIO2(RX) pins on header P0
@@ -77,9 +78,10 @@ void C1_init(void)
 		uartCallbackSet(uart_configs[i].uartName, UART_RECEIVE, onRx, (void *)i);
 		uartInterrupt(uart_configs[i].uartName, true);
 
+		C1_FSM[i].timeOut = xTimerCreate("timeOut", TIMEOUT_PERIOD_TICKS, pdFALSE, (void *)i, onTime);
+		configASSERT(C1_FSM[i].timeOut);
 		C1_FSM[i].state = C1_IDLE;
 		C1_FSM[i].countChars = 0;
-		C1_FSM[i].uart_index = i;
 	}
 }
 
@@ -89,6 +91,7 @@ void onRx(void *param)
 	static BaseType_t xHigherPriorityTaskWoken = pdFALSE; // Comenzamos definiendo la variable
 
 	uint8_t c = uartRxRead(uart_configs[index].uartName); // Selecciona la UART
+	// Reseteamos el timer
 
 	switch (C1_FSM[index].state)
 	{
@@ -99,6 +102,7 @@ void onRx(void *param)
 			C1_FSM[index].countChars = 0;
 			C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
 			C1_FSM[index].countChars++;
+			xTimerResetFromISR(C1_FSM[index].timeOut, &xHigherPriorityTaskWoken);
 		}
 		break;
 	case C1_ACQUIRING:
@@ -111,10 +115,12 @@ void onRx(void *param)
 			{
 				C1_FSM[index].state = C1_IDLE;
 			}
+			xTimerResetFromISR(C1_FSM[index].timeOut, &xHigherPriorityTaskWoken);
 		}
 		else if (FRAME_START)
 		{
 			C1_FSM[index].countChars = 1;
+			xTimerResetFromISR(C1_FSM[index].timeOut, &xHigherPriorityTaskWoken);
 		}
 		else if (END_FRAME)
 		{
@@ -150,4 +156,11 @@ void uartUsbSendCallback(void *param)
 	uartWriteString(uart_configs[index].uartName, "\n\r");
 	uartCallbackClr(uart_configs[index].uartName, UART_TRANSMITER_FREE);
 	xSemaphoreGiveFromISR(msg[index].semphrC2ISR, &xHigherPriorityTaskWoken);
+}
+
+void onTime( TimerHandle_t xTimer)
+{
+	uint32_t index = (uint32_t) pvTimerGetTimerID( xTimer );
+	
+	C1_FSM[index].state = C1_IDLE;
 }

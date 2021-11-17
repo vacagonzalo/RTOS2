@@ -22,7 +22,6 @@ extern "C"
 #endif
 #include <inttypes.h>
 /*=====[Definition macros of public constants]===============================*/
-#define FRAME_MAX_LENGTH 209
 #define RECIEVED_CHAR_QUEUE_SIZE 10
 
     /*=====[Public function-like macros]=========================================*/
