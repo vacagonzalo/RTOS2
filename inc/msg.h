@@ -42,7 +42,7 @@ extern "C"
 
     typedef struct
     {
-        QueueHandle_t queueC1C2;
+        QueueHandle_t queueISRC2;
         QueueHandle_t queueC2C3;
         QueueHandle_t queueC3C2;
         SemaphoreHandle_t semphrC2ISR;

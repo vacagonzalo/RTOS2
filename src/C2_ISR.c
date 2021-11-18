@@ -7,7 +7,7 @@
  * Date: 2021/10/30
  *===========================================================================*/
 
-#include "C1.h"
+#include "C2_ISR.h"
 #include "msg.h"
 #include "appConfig.h"
 #include <stdint.h>
@@ -29,31 +29,30 @@
 #define FRAME_MINIMUN_VALID_LENGTH 9
 #define VALID_ID_CHAR (c >= 0x41 && c <= 0x46) || (c >= 0x30 && c <= 0x39)
 #define ID_LOCATION 5
-#define VALID_CRC_CHAR1 ((C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 2] >= 0x41 && C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 2] <= 0x46) || (C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 2] >= 0x30 && C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 2] <= 0x39))
-#define VALID_CRC_CHAR2 ((C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 1] >= 0x41 && C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 1] <= 0x46) || (C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 1] >= 0x30 && C1_FSM[index].pktRecieved[C1_FSM[index].countChars - 1] <= 0x39))
+#define VALID_CRC_CHAR1 ((ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 2] >= 0x41 && ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 2] <= 0x46) || (ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 2] >= 0x30 && ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 2] <= 0x39))
+#define VALID_CRC_CHAR2 ((ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 1] >= 0x41 && ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 1] <= 0x46) || (ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 1] >= 0x30 && ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 1] <= 0x39))
 
 typedef enum
 {
-	C1_IDLE,
-	C1_ACQUIRING
-} C1_states_t;
+	ISR_IDLE,
+	ISR_ACQUIRING
+} ISR_states_t;
 
 typedef struct
 {
-	C1_states_t state;
+	ISR_states_t state;
 	uint8_t countChars;
 	uint8_t pktRecieved[FRAME_MAX_LENGTH + 1];
 	TimerHandle_t timeOut;
-} C1_FSM_t;
+} ISR_FSM_t;
 
 const t_UART_config uart_configs[] = {
 	{.uartName = UART_USB, .baudRate = DEFAULT_BAUD_RATE}};
 
-C1_FSM_t C1_FSM[UARTS_TO_USE];
+ISR_FSM_t ISR_FSM[UARTS_TO_USE];
 
 void onRx(void *param);
 void uartUsbSendCallback(void *param);
-void C1_task(void *param);
 void onTime( TimerHandle_t xTimer);
 
 /*
@@ -68,7 +67,7 @@ extern msg_t msg[UARTS_TO_USE];
 
 uint8_t *pDataToSend;
 
-void C1_init(void)
+void ISR_init(void)
 {
 	for (uint32_t i = 0; i < UARTS_TO_USE; ++i)
 	{
@@ -78,10 +77,10 @@ void C1_init(void)
 		uartCallbackSet(uart_configs[i].uartName, UART_RECEIVE, onRx, (void *)i);
 		uartInterrupt(uart_configs[i].uartName, true);
 
-		C1_FSM[i].timeOut = xTimerCreate("timeOut", TIMEOUT_PERIOD_TICKS, pdFALSE, (void *)i, onTime);
-		configASSERT(C1_FSM[i].timeOut);
-		C1_FSM[i].state = C1_IDLE;
-		C1_FSM[i].countChars = 0;
+		ISR_FSM[i].timeOut = xTimerCreate("timeOut", TIMEOUT_PERIOD_TICKS, pdFALSE, (void *)i, onTime);
+		configASSERT(ISR_FSM[i].timeOut);
+		ISR_FSM[i].state = ISR_IDLE;
+		ISR_FSM[i].countChars = 0;
 	}
 }
 
@@ -93,54 +92,54 @@ void onRx(void *param)
 	uint8_t c = uartRxRead(uart_configs[index].uartName); // Selecciona la UART
 	// Reseteamos el timer
 
-	switch (C1_FSM[index].state)
+	switch (ISR_FSM[index].state)
 	{
-	case C1_IDLE:
+	case ISR_IDLE:
 		if (FRAME_START)
 		{
-			C1_FSM[index].state = C1_ACQUIRING;
-			C1_FSM[index].countChars = 0;
-			C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
-			C1_FSM[index].countChars++;
-			xTimerResetFromISR(C1_FSM[index].timeOut, &xHigherPriorityTaskWoken);
+			ISR_FSM[index].state = ISR_ACQUIRING;
+			ISR_FSM[index].countChars = 0;
+			ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars] = c;
+			ISR_FSM[index].countChars++;
+			xTimerResetFromISR(ISR_FSM[index].timeOut, &xHigherPriorityTaskWoken);
 		}
 		break;
-	case C1_ACQUIRING:
+	case ISR_ACQUIRING:
 		if (VALID_CHAR)
 		{
-			C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
-			C1_FSM[index].countChars++;
-			if ((C1_FSM[index].countChars == FRAME_MAX_LENGTH) ||
-				(!(VALID_ID_CHAR) && C1_FSM[index].countChars < ID_LOCATION))
+			ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars] = c;
+			ISR_FSM[index].countChars++;
+			if ((ISR_FSM[index].countChars == FRAME_MAX_LENGTH) ||
+				(!(VALID_ID_CHAR) && ISR_FSM[index].countChars < ID_LOCATION))
 			{
-				C1_FSM[index].state = C1_IDLE;
+				ISR_FSM[index].state = ISR_IDLE;
 			}
-			xTimerResetFromISR(C1_FSM[index].timeOut, &xHigherPriorityTaskWoken);
+			xTimerResetFromISR(ISR_FSM[index].timeOut, &xHigherPriorityTaskWoken);
 		}
 		else if (FRAME_START)
 		{
-			C1_FSM[index].countChars = 1;
-			xTimerResetFromISR(C1_FSM[index].timeOut, &xHigherPriorityTaskWoken);
+			ISR_FSM[index].countChars = 1;
+			xTimerResetFromISR(ISR_FSM[index].timeOut, &xHigherPriorityTaskWoken);
 		}
 		else if (END_FRAME)
 		{
-			if ((C1_FSM[index].countChars > FRAME_MINIMUN_VALID_LENGTH - 1) &&
+			if ((ISR_FSM[index].countChars > FRAME_MINIMUN_VALID_LENGTH - 1) &&
 				(VALID_CRC_CHAR1) && (VALID_CRC_CHAR2))
 			{ // Mandar la cola de mensajes
-				C1_FSM[index].pktRecieved[C1_FSM[index].countChars] = c;
-				C1_FSM[index].countChars++;
-				C1_FSM[index].pktRecieved[FRAME_MAX_LENGTH] = C1_FSM[index].countChars;
-				xQueueSendFromISR(msg[index].queueC1C2, C1_FSM[index].pktRecieved, &xHigherPriorityTaskWoken);
+				ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars] = c;
+				ISR_FSM[index].countChars++;
+				ISR_FSM[index].pktRecieved[FRAME_MAX_LENGTH] = ISR_FSM[index].countChars;
+				xQueueSendFromISR(msg[index].queueISRC2, ISR_FSM[index].pktRecieved, &xHigherPriorityTaskWoken);
 			}
-			C1_FSM[index].state = C1_IDLE;
+			ISR_FSM[index].state = ISR_IDLE;
 		}
 		else
 		{
-			C1_FSM[index].state = C1_IDLE;
+			ISR_FSM[index].state = ISR_IDLE;
 		}
 		break;
 	default:
-		C1_FSM[index].state = C1_IDLE;
+		ISR_FSM[index].state = ISR_IDLE;
 		break;
 	}
 }
@@ -151,7 +150,6 @@ void uartUsbSendCallback(void *param)
 	uint32_t index = (uint32_t)param;
 	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-	//uartWriteString(uart_configs[index].uartName, "C2 to C1: ");
 	uartWriteString(uart_configs[index].uartName, pDataToSend);
 	uartWriteString(uart_configs[index].uartName, "\n\r");
 	uartCallbackClr(uart_configs[index].uartName, UART_TRANSMITER_FREE);
@@ -161,5 +159,5 @@ void uartUsbSendCallback(void *param)
 void onTime( TimerHandle_t xTimer)
 {
 	uint32_t index = (uint32_t) pvTimerGetTimerID( xTimer );	
-	C1_FSM[index].state = C1_IDLE;
+	ISR_FSM[index].state = ISR_IDLE;
 }

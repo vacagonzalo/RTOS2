@@ -93,7 +93,7 @@ void C2_task_in(void *param)
         datosC1C2.ptr = (tMensaje)QMPool_get(&Pool_memoria, 0); //pido un bloque del pool
         configASSERT(datosC1C2.ptr != NULL);                    //<-- Gestion de errores
 
-        xQueueReceive(msg[index].queueC1C2, datosC1C2.ptr, portMAX_DELAY); // Esperamos el caracter
+        xQueueReceive(msg[index].queueISRC2, datosC1C2.ptr, portMAX_DELAY); // Esperamos el caracter
         datosC1C2.length = (uint8_t)datosC1C2.ptr[FRAME_MAX_LENGTH];
 
         /*taskENTER_CRITICAL();

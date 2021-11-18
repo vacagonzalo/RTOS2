@@ -9,8 +9,8 @@
 
 /*=====[Avoid multiple inclusion - begin]====================================*/
 
-#ifndef __C1_H__
-#define __C1_H__
+#ifndef __C2_ISR_H__
+#define __C2_ISR_H__
 
 /*=====[Inclusions of public function dependencies]==========================*/
 
@@ -22,7 +22,6 @@ extern "C"
 #endif
 #include <inttypes.h>
 /*=====[Definition macros of public constants]===============================*/
-#define RECIEVED_CHAR_QUEUE_SIZE 10
 
     /*=====[Public function-like macros]=========================================*/
 
@@ -30,7 +29,7 @@ extern "C"
 
     /*=====[Prototypes (declarations) of public functions]=======================*/
 
-    void C1_init(void);
+    void ISR_init(void);
 
     /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 
@@ -42,4 +41,4 @@ extern "C"
 
 /*=====[Avoid multiple inclusion - end]======================================*/
 
-#endif /* __C1_H__ */
+#endif /* __C2_ISR_H__ */

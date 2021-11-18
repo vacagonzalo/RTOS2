@@ -18,7 +18,7 @@
 #include "sapi.h"
 #include "userTasks.h"
 #include "msg.h"
-#include "C1.h"
+#include "C2_ISR.h"
 #include "C2.h"
 #include "C3.h"
 #include "appConfig.h"
@@ -46,7 +46,7 @@ int main(void)
    QMPool_init(&Pool_memoria, (tMensaje)Pool_puntero, POOL_SIZE * sizeof(tMensaje), PACKET_SIZE); //Tamanio del segmento de memoria reservado
 
    queue_init();
-   C1_init();
+   ISR_init();
    C2_init();
    C3_init();
 
