@@ -14,7 +14,7 @@ def main():
         s.write(b'(0001al')
         time.sleep(0.005)
         s.write(b'ohaFF)')
-        time.sleep(1)
+        time.sleep(0.1)
         res = s.read_all()
         print(res)
         
@@ -53,7 +53,7 @@ def main():
         print(res)
         
         #Paquete correcto 2
-        s.write(b'(0000ChauchaFF)')
+        s.write(b'(0009ChauchaFF)')
         time.sleep(0.1)
         res = s.read_all()
         print(res)
