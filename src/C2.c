@@ -14,6 +14,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "sapi.h"
 #include "FreeRTOS.h"
@@ -22,10 +23,7 @@
 #include "queue.h"
 #include "qmpool.h"
 #include "semphr.h"
-
-#define FRAME_ID_LENGTH 4
-#define FRAME_CRCEOF_LENGTH 4
-#define FRAME_CDATA_DISCART_LENGTH 8
+#include "crc8.h"
 
 extern msg_t msg[UARTS_TO_USE];
 extern QMPool Pool_memoria;

@@ -33,6 +33,14 @@ extern "C"
 #define TIMEOUT_PERIOD 4
 #define TIMEOUT_PERIOD_TICKS pdMS_TO_TICKS(TIMEOUT_PERIOD)
 
+#define OFFSET_CRC 2
+#define OFFSET_ID 5
+#define DISCART_FRAME 3
+#define FRAME_ID_LENGTH 4
+#define FRAME_CRCEOF_LENGTH 4
+#define FRAME_CDATA_DISCART_LENGTH 8
+#define OFFSET_SOF 1
+
     /*=====[Public function-like macros]=========================================*/
 
     /*=====[Definitions of public data types]====================================*/

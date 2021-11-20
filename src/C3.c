@@ -21,9 +21,6 @@
 #include "task.h"
 #include "queue.h"
 
-#define OFFSET_ID 5
-#define DISCART_FRAME 3
-
 extern msg_t msg[UARTS_TO_USE];
 
 void C3_task(void *param);

@@ -20,6 +20,7 @@
 #include "task.h"
 #include "queue.h"
 #include "timers.h"
+#include "crc8.h"
 
 #define RECIEVED_CHAR_QUEUE_SIZE 10
 #define FRAME_START (c == '(')
@@ -53,7 +54,9 @@ ISR_FSM_t ISR_FSM[UARTS_TO_USE];
 
 void onRx(void *param);
 void uartUsbSendCallback(void *param);
-void onTime( TimerHandle_t xTimer);
+void onTime(TimerHandle_t xTimer);
+uint8_t ascii2hex(uint8_t *p);
+void C2_uartWriteString(uartMap_t uart, const char *str);
 
 /*
    	   UART_GPIO = 0, // Hardware UART0 via GPIO1(TX), GPIO2(RX) pins on header P0
@@ -123,15 +126,22 @@ void onRx(void *param)
 		}
 		else if (END_FRAME)
 		{
+			ISR_FSM[index].state = ISR_IDLE;
 			if ((ISR_FSM[index].countChars > FRAME_MINIMUN_VALID_LENGTH - 1) &&
 				(VALID_CRC_CHAR1) && (VALID_CRC_CHAR2))
-			{ // Mandar la cola de mensajes
-				ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars] = c;
-				ISR_FSM[index].countChars++;
-				ISR_FSM[index].pktRecieved[FRAME_MAX_LENGTH] = ISR_FSM[index].countChars;
-				xQueueSendFromISR(msg[index].queueISRC2, ISR_FSM[index].pktRecieved, &xHigherPriorityTaskWoken);
+			{
+				// CRC Check
+				uint8_t crcCalc = crc8_calc(crc8_init(), ISR_FSM[index].pktRecieved + OFFSET_SOF, ISR_FSM[index].countChars - OFFSET_CRC - OFFSET_SOF);
+				uint8_t crcRecieved = ascii2hex(ISR_FSM[index].pktRecieved + ISR_FSM[index].countChars - OFFSET_CRC);
+				if (crcCalc == crcRecieved)
+				{
+					// Mandar la cola de mensajes
+					ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars] = c;
+					ISR_FSM[index].countChars++;
+					ISR_FSM[index].pktRecieved[FRAME_MAX_LENGTH] = ISR_FSM[index].countChars;
+					xQueueSendFromISR(msg[index].queueISRC2, ISR_FSM[index].pktRecieved, &xHigherPriorityTaskWoken);
+				}
 			}
-			ISR_FSM[index].state = ISR_IDLE;
 		}
 		else
 		{
@@ -151,13 +161,48 @@ void uartUsbSendCallback(void *param)
 	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
 	uartWriteString(uart_configs[index].uartName, pDataToSend);
-	uartWriteString(uart_configs[index].uartName, "\n\r");
+	//uartWriteString(uart_configs[index].uartName, "\n");
 	uartCallbackClr(uart_configs[index].uartName, UART_TRANSMITER_FREE);
 	xSemaphoreGiveFromISR(msg[index].semphrC2ISR, &xHigherPriorityTaskWoken);
 }
 
-void onTime( TimerHandle_t xTimer)
+void onTime(TimerHandle_t xTimer)
 {
-	uint32_t index = (uint32_t) pvTimerGetTimerID( xTimer );	
+	uint32_t index = (uint32_t)pvTimerGetTimerID(xTimer);
 	ISR_FSM[index].state = ISR_IDLE;
+}
+
+uint8_t ascii2hex(uint8_t *p)
+{
+	uint8_t result = 0;
+	if (p[0] >= 0x41 && p[0] <= 0x46)
+	{
+		result = (10 + p[0] - 'A') * 16;
+	}
+	else
+	{
+		result = (p[0] - '0') * 16;
+	}
+
+	if (p[1] >= 0x41 && p[1] <= 0x46)
+	{
+		result += 10 + p[1] - 'A';
+	}
+	else
+	{
+		result += p[1] - '0';
+	}
+	return result;
+}
+
+void C2_uartWriteString(uartMap_t uart, const char *str)
+{
+	while (*str != 0)
+	{
+		// Wait for space in FIFO (blocking)
+		//while( uartTxReady( uart ) == FALSE );
+		// Send byte
+		uartTxWrite(uart, (uint8_t)*str);
+		str++;
+	}
 }
