@@ -56,7 +56,6 @@ void onRx(void *param);
 void uartUsbSendCallback(void *param);
 void onTime(TimerHandle_t xTimer);
 uint8_t ascii2hex(uint8_t *p);
-void C2_uartWriteString(uartMap_t uart, const char *str);
 
 /*
    	   UART_GPIO = 0, // Hardware UART0 via GPIO1(TX), GPIO2(RX) pins on header P0
@@ -160,8 +159,8 @@ void uartUsbSendCallback(void *param)
 	uint32_t index = (uint32_t)param;
 	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-	uartWriteString(uart_configs[index].uartName, pDataToSend);
-	//uartWriteString(uart_configs[index].uartName, "\n");
+	while( uartTxReady( uart_configs[index].uartName ) == FALSE );
+	uartTxWrite(uart_configs[index].uartName, (uint8_t)*pDataToSend);
 	uartCallbackClr(uart_configs[index].uartName, UART_TRANSMITER_FREE);
 	xSemaphoreGiveFromISR(msg[index].semphrC2ISR, &xHigherPriorityTaskWoken);
 }
@@ -195,14 +194,3 @@ uint8_t ascii2hex(uint8_t *p)
 	return result;
 }
 
-void C2_uartWriteString(uartMap_t uart, const char *str)
-{
-	while (*str != 0)
-	{
-		// Wait for space in FIFO (blocking)
-		//while( uartTxReady( uart ) == FALSE );
-		// Send byte
-		uartTxWrite(uart, (uint8_t)*str);
-		str++;
-	}
-}

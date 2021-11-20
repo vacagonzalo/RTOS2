@@ -30,6 +30,7 @@ extern QMPool Pool_memoria;
 extern uint8_t *pDataToSend;
 extern t_UART_config uart_configs[];
 extern void uartUsbSendCallback(void *param);
+void int2ascii (uint8_t *p, uint8_t crc);
 
 typedef struct
 {
@@ -120,7 +121,7 @@ void C2_task_out(void *param)
     queueRecievedFrame_t datosID, datosC3C2;
     uint8_t crc_eof[FRAME_CRCEOF_LENGTH];
     crc_eof[2] = ')';
-    crc_eof[3] = '\0';
+    crc_eof[3] = '\0'; // TODO Borrar.
     while (TRUE)
     {
         xQueueReceive(C2_instances[index].queueC2InOut, &datosID, portMAX_DELAY); // Esperamos el ID
@@ -135,23 +136,55 @@ void C2_task_out(void *param)
 
         xQueueReceive(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
         // calculo de CRC a enviar
-        crc_eof[0] = 'C';
-        crc_eof[1] = '2';
-
+        uint8_t crcCalc = crc8_calc(crc8_init(), datosC3C2.ptr + OFFSET_SOF, datosC3C2.length - OFFSET_SOF);
+        int2ascii (crc_eof,crcCalc);
         // CRC y EOF
         for (uint8_t i = 0; i < FRAME_CRCEOF_LENGTH; i++)
         {
             datosC3C2.ptr[datosC3C2.length + i] = crc_eof[i];
         }
-        pDataToSend = datosC3C2.ptr;
-        uartCallbackSet(uart_configs[index].uartName, UART_TRANSMITER_FREE, uartUsbSendCallback, (void *)index);
-        uartSetPendingInterrupt(uart_configs[index].uartName);
 
-        // Espera semaforo para terminar de enviar el mensaje por ISR
-        xSemaphoreTake(msg[index].semphrC2ISR, portMAX_DELAY);
+        uint32_t i = 0;
+        while (i < datosC3C2.length + DISCART_FRAME)
+        {
+            pDataToSend = datosC3C2.ptr + i;
+            uartCallbackSet(uart_configs[index].uartName, UART_TRANSMITER_FREE, uartUsbSendCallback, (void *)index);
+            uartSetPendingInterrupt(uart_configs[index].uartName);
+            // Espera semaforo para terminar de enviar el mensaje por ISR
+            if (xSemaphoreTake(msg[index].semphrC2ISR, 0) == pdTRUE)
+            {
+                i++;
+            }
+        }
 
         // Libero el bloque de memoria que ya fue trasmitido
         QMPool_put(&Pool_memoria, datosC3C2.ptr);
         datosC3C2.ptr = NULL;
     }
+}
+
+void int2ascii (uint8_t *p, uint8_t crc)
+{
+    uint8_t msn, lsn;
+
+    msn = crc/16;
+    lsn = crc-msn*16;
+
+    if (msn < 10)
+    {
+        p[0] = msn + '0';
+    }
+    else
+    {
+       p[0] = msn-10 + 'A';
+    }
+    
+    if (lsn < 10)
+    {
+        p[1] = lsn + '0';
+    }
+    else
+    {
+       p[1] = lsn-10 + 'A';
+    }    
 }
