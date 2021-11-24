@@ -19,7 +19,7 @@ ERR_MEM     =   Errors.index("NO_MEM")
 
 #configuracion particular del test
 DEFAULT_CMD_NRO = 100
-DEFAULT_ERRORS  = round(0.5 * DEFAULT_CMD_NRO)   #Asi falla el 10%
+DEFAULT_ERRORS  = round(0 * DEFAULT_CMD_NRO)   #Asi falla el 10%
 
 Port = None
 WaitTime = 0.1

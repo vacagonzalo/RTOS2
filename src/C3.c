@@ -85,35 +85,98 @@ void C3_task(void *param)
         /* (SSSSEnnCC) */
         switch (errorType)
         {
-            case NO_ERROR:
+        case NO_ERROR:
+        {
+            datosC3C2.length = datosC2C3.length - DISCART_FRAME;
+            // Pasar a Snake es lo mismo desde pascal o camel!
+            if (datosC3C2.ptr[OFFSET_ID] == 'S')
             {
-                // Envio a C2 via queueC3C2
-                datosC3C2.length = datosC2C3.length - DISCART_FRAME;                
-                xQueueSend(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);
-                break;
+                uint32_t i = OFFSET_ID+1;
+                while (i < datosC3C2.length)
+                {
+                    if (datosC3C2.ptr[i] >= 'A' && datosC3C2.ptr[i] <= 'Z')
+                    {
+                        datosC3C2.ptr[i] += 32;
+                        if (i != OFFSET_ID+1)
+                        {
+                            datosC3C2.length++;
+                            memmove(datosC3C2.ptr + i + 1, datosC3C2.ptr + i, datosC3C2.length - i);
+                            datosC3C2.ptr[i] = '_';
+                            i++;
+                        }
+                    }
+                    i++;
+                }
             }
-            case ERROR_INVALID_DATA:
+            else if (datosC3C2.ptr[OFFSET_ID] == 'P')
             {
-                datosC3C2.length = (OFFSET_ID + COM_DATA_ERROR);
-                memcpy(datosC3C2.ptr + OFFSET_ID, "E00", COM_DATA_ERROR);
-                xQueueSend(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);
-                break;
+                uint32_t i = OFFSET_ID+1;
+                while (i < datosC3C2.length)
+                {
+                    if (datosC3C2.ptr[i] == '_')
+                    {
+                        datosC3C2.ptr[i+1] -= 32;
+                        memmove(datosC3C2.ptr + i, datosC3C2.ptr + i + 1, datosC3C2.length - i);
+                        datosC3C2.length--;
+                    }
+                    else if (datosC3C2.ptr[i] >= 'A' && datosC3C2.ptr[i] <= 'Z')
+                    {
+                        i = datosC3C2.length;
+                    }
+                    else
+                    {
+                        if (i == OFFSET_ID+1)
+                        {
+                            datosC3C2.ptr[i] -= 32;
+                        }                        
+                    }
+                    i++;
+                }
             }
-            case ERROR_INVALID_OPCODE:
+            else if  (datosC3C2.ptr[OFFSET_ID] == 'C')
             {
-                datosC3C2.length = (OFFSET_ID + COM_DATA_ERROR);
-                memcpy(datosC3C2.ptr + OFFSET_ID, "E01", COM_DATA_ERROR);
-                xQueueSend(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);
-                break;
-            }
-            case ERROR_SYSTEM:
-            {
-                break;
-            }
-            default:
-            {
-                break;
-            }
+                uint32_t i = OFFSET_ID+1;
+                while (i < datosC3C2.length)
+                {
+                    if (datosC3C2.ptr[i] == '_')
+                    {
+                        datosC3C2.ptr[i+1] -= 32;
+                        memmove(datosC3C2.ptr + i, datosC3C2.ptr + i + 1, datosC3C2.length - i);
+                        datosC3C2.length--;
+                    }
+                    else if (datosC3C2.ptr[i] >= 'A' && datosC3C2.ptr[i] <= 'Z')
+                    {
+                        if (i == OFFSET_ID+1)
+                        {
+                            datosC3C2.ptr[i] += 32;
+                        }
+                        i = datosC3C2.length;
+                    }
+                    i++;
+                }
+            }            
+            // Envio a C2 via queueC3C2
+            xQueueSend(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);
+            break;
+        }
+        case ERROR_INVALID_DATA:
+        {
+            datosC3C2.length = (OFFSET_ID + COM_DATA_ERROR);
+            memcpy(datosC3C2.ptr + OFFSET_ID, "E00", COM_DATA_ERROR);
+            xQueueSend(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);
+            break;
+        }
+        case ERROR_INVALID_OPCODE:
+        {
+            datosC3C2.length = (OFFSET_ID + COM_DATA_ERROR);
+            memcpy(datosC3C2.ptr + OFFSET_ID, "E01", COM_DATA_ERROR);
+            xQueueSend(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);
+            break;
+        }
+        case ERROR_SYSTEM:
+            break;
+        default:
+            break;
         }
     }
 }
@@ -137,6 +200,7 @@ errorType_t digestor(queueRecievedFrame_t dato)
             if (dato.ptr[i] == ' ')
             {
                 flagType = SPACE;
+                dato.ptr[i] = '_';
             }
             else if (dato.ptr[i] == '_')
             {
@@ -155,6 +219,7 @@ errorType_t digestor(queueRecievedFrame_t dato)
             else if (dato.ptr[i] == ' ')
             {
                 words++;
+                dato.ptr[i] = '_';
             }
             break;
         case UNDER:
