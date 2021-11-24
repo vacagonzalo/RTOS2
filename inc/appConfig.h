@@ -40,6 +40,7 @@ extern "C"
 #define FRAME_CRCEOF_LENGTH 4
 #define FRAME_CDATA_DISCART_LENGTH 8
 #define OFFSET_SOF 1
+#define COM_DATA_ERROR 3
 
     /*=====[Public function-like macros]=========================================*/
 

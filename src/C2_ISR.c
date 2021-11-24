@@ -145,6 +145,9 @@ void onRx(void *param)
 		else
 		{
 			ISR_FSM[index].state = ISR_IDLE;
+			ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars] = '_';
+			ISR_FSM[index].pktRecieved[FRAME_MAX_LENGTH] = ISR_FSM[index].countChars+4;			
+			xQueueSendFromISR(msg[index].queueISRC2, ISR_FSM[index].pktRecieved, &xHigherPriorityTaskWoken);
 		}
 		break;
 	default:

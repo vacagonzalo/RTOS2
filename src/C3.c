@@ -21,7 +21,17 @@
 #include "task.h"
 #include "queue.h"
 
+typedef enum
+{
+    NONE,
+    SPACE,
+    MAYUS,
+    UNDER
+} flagType_t;
+
 extern msg_t msg[UARTS_TO_USE];
+
+errorType_t digestor(queueRecievedFrame_t dato);
 
 void C3_task(void *param);
 
@@ -45,6 +55,7 @@ void C3_task(void *param)
 {
     uint32_t index = (uint32_t)param;
     queueRecievedFrame_t datosC2C3, datosC3C2;
+    errorType_t errorType = NO_ERROR;
 
     while (TRUE)
     {
@@ -63,10 +74,139 @@ void C3_task(void *param)
         // {
         //     datosC2C3.ptr[i]++;
         // }
-
-        // Envio a C2 via queueC3C2
-        datosC3C2.length = datosC2C3.length - DISCART_FRAME;
         datosC3C2.ptr = datosC2C3.ptr;
-        xQueueSend(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);
+        errorType = digestor(datosC2C3);
+        /*
+
+        ERROR_INVALID_DATA,
+        ERROR_INVALID_OPCODE,
+        ERROR_SYSTEM,
+        NO_ERROR*/
+        /* (SSSSEnnCC) */
+        switch (errorType)
+        {
+            case NO_ERROR:
+            {
+                // Envio a C2 via queueC3C2
+                datosC3C2.length = datosC2C3.length - DISCART_FRAME;                
+                xQueueSend(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);
+                break;
+            }
+            case ERROR_INVALID_DATA:
+            {
+                datosC3C2.length = (OFFSET_ID + COM_DATA_ERROR);
+                memcpy(datosC3C2.ptr + OFFSET_ID, "E00", COM_DATA_ERROR);
+                xQueueSend(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);
+                break;
+            }
+            case ERROR_INVALID_OPCODE:
+            {
+                datosC3C2.length = (OFFSET_ID + COM_DATA_ERROR);
+                memcpy(datosC3C2.ptr + OFFSET_ID, "E01", COM_DATA_ERROR);
+                xQueueSend(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);
+                break;
+            }
+            case ERROR_SYSTEM:
+            {
+                break;
+            }
+            default:
+            {
+                break;
+            }
+        }
     }
+}
+
+errorType_t digestor(queueRecievedFrame_t dato)
+{
+    /* Chequear data finaliza con '_' o con ' ' */
+    if (dato.ptr[dato.length - DISCART_FRAME - 1] == ' ' || dato.ptr[dato.length - DISCART_FRAME - 1] == '_')
+    {
+        return ERROR_INVALID_DATA;
+    }
+
+    flagType_t flagType = NONE;
+    uint8_t words = 1;
+
+    for (uint32_t i = OFFSET_ID + 1; i < dato.length - DISCART_FRAME; ++i)
+    {
+        switch (flagType)
+        {
+        case NONE:
+            if (dato.ptr[i] == ' ')
+            {
+                flagType = SPACE;
+            }
+            else if (dato.ptr[i] == '_')
+            {
+                flagType = UNDER;
+            }
+            else if (dato.ptr[i] >= 'A' && dato.ptr[i] <= 'Z')
+            {
+                flagType = MAYUS;
+            }
+            break;
+        case SPACE:
+            if ((dato.ptr[i] == '_') || (dato.ptr[i] >= 'A' && dato.ptr[i] <= 'Z'))
+            {
+                return ERROR_INVALID_DATA;
+            }
+            else if (dato.ptr[i] == ' ')
+            {
+                words++;
+            }
+            break;
+        case UNDER:
+            if ((dato.ptr[i] == ' ') || (dato.ptr[i] >= 'A' && dato.ptr[i] <= 'Z'))
+            {
+                return ERROR_INVALID_DATA;
+            }
+            else if (dato.ptr[i] == '_')
+            {
+                words++;
+            }
+            break;
+        case MAYUS:
+            if ((dato.ptr[i] == '_') || (dato.ptr[i] == ' '))
+            {
+                return ERROR_INVALID_DATA;
+            }
+            else if (dato.ptr[i] >= 'A' && dato.ptr[i] <= 'Z')
+            {
+                words++;
+            }
+            break;
+        default:
+            break;
+        }
+
+        if (dato.ptr[i] == ' ')
+        {
+            if (dato.ptr[i - 1] == ' ')
+            {
+                return ERROR_INVALID_DATA; // doble espacio
+            }
+        }
+        else if (dato.ptr[i] == '_')
+        {
+            if (dato.ptr[i - 1] == '_')
+            {
+                return ERROR_INVALID_DATA; // doble guion bajo
+            }
+        }
+
+        // Chequeo de cantidad de palabras en el frame
+        if (words > 15)
+        {
+            return ERROR_INVALID_DATA;
+        }
+    }
+    /* Chequear comando invalido */
+    if (dato.ptr[OFFSET_ID] != 'S' && dato.ptr[OFFSET_ID] != 'C' && dato.ptr[OFFSET_ID] != 'P')
+    {
+        return ERROR_INVALID_OPCODE;
+    }
+
+    return NO_ERROR;
 }

@@ -29,6 +29,7 @@ extern "C"
 
     /*=====[Definition macros of public constants]===============================*/
 #define RECIEVED_FRAME_QUEUE_SIZE 5
+
     /*=====[Public function-like macros]=========================================*/
 
     /*=====[Definitions of public data types]====================================*/
@@ -47,6 +48,14 @@ extern "C"
         QueueHandle_t queueC3C2;
         SemaphoreHandle_t semphrC2ISR;
     } msg_t;
+
+    typedef enum
+    {
+        ERROR_INVALID_DATA,
+        ERROR_INVALID_OPCODE,
+        ERROR_SYSTEM,
+        NO_ERROR
+    } errorType_t;
 
     /*=====[Prototypes (declarations) of public functions]=======================*/
 
