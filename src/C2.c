@@ -89,7 +89,7 @@ void C2_task_in(void *param)
     while (TRUE)
     {
         // Pedido de memoria al Pool
-        datosC1C2.ptr = (tMensaje)QMPool_get(&Pool_memoria, 0); //pido un bloque del pool
+        datosC1C2.ptr = QMPool_get(&Pool_memoria, 0); //pido un bloque del pool
         configASSERT(datosC1C2.ptr != NULL);                    //<-- Gestion de errores
 
         xQueueReceive(msg[index].queueISRC2, datosC1C2.ptr, portMAX_DELAY); // Esperamos el caracter
@@ -145,15 +145,15 @@ void C2_task_out(void *param)
         }
 
         uint32_t i = 0;
-        while (i < datosC3C2.length + DISCART_FRAME)
+        pDataToSend = datosC3C2.ptr;
+        while (pDataToSend < (datosC3C2.ptr + datosC3C2.length + DISCART_FRAME))
         {
-            pDataToSend = datosC3C2.ptr + i;
             uartCallbackSet(uart_configs[index].uartName, UART_TRANSMITER_FREE, uartUsbSendCallback, (void *)index);
             uartSetPendingInterrupt(uart_configs[index].uartName);
             // Espera semaforo para terminar de enviar el mensaje por ISR
             if (xSemaphoreTake(msg[index].semphrC2ISR, 0) == pdTRUE)
             {
-                i++;
+                pDataToSend++;
             }
         }
 

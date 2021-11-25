@@ -40,10 +40,10 @@ int main(void)
    boardInit();
 
    //	Reservo memoria para el memory pool
-   void *Pool_puntero = (tMensaje)pvPortMalloc(POOL_SIZE * sizeof(char));
+   void *Pool_puntero = pvPortMalloc(POOL_SIZE * sizeof(char));
    configASSERT(Pool_puntero != NULL);
    //	Creo el pool de memoria que va a usarse para la transmision
-   QMPool_init(&Pool_memoria, (tMensaje)Pool_puntero, POOL_SIZE * sizeof(tMensaje), PACKET_SIZE); //Tamanio del segmento de memoria reservado
+   QMPool_init(&Pool_memoria, Pool_puntero, POOL_SIZE * sizeof(uint8_t), PACKET_SIZE); //Tamanio del segmento de memoria reservado
 
    queue_init();
    ISR_init();

@@ -146,7 +146,7 @@ void onRx(void *param)
 		{
 			ISR_FSM[index].state = ISR_IDLE;
 			ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars] = '_';
-			ISR_FSM[index].pktRecieved[FRAME_MAX_LENGTH] = ISR_FSM[index].countChars+4;			
+			ISR_FSM[index].pktRecieved[FRAME_MAX_LENGTH] = ISR_FSM[index].countChars + 4;
 			xQueueSendFromISR(msg[index].queueISRC2, ISR_FSM[index].pktRecieved, &xHigherPriorityTaskWoken);
 		}
 		break;
@@ -162,7 +162,8 @@ void uartUsbSendCallback(void *param)
 	uint32_t index = (uint32_t)param;
 	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-	while( uartTxReady( uart_configs[index].uartName ) == FALSE );
+	while (uartTxReady(uart_configs[index].uartName) == FALSE)
+		;
 	uartTxWrite(uart_configs[index].uartName, (uint8_t)*pDataToSend);
 	uartCallbackClr(uart_configs[index].uartName, UART_TRANSMITER_FREE);
 	xSemaphoreGiveFromISR(msg[index].semphrC2ISR, &xHigherPriorityTaskWoken);
@@ -196,4 +197,3 @@ uint8_t ascii2hex(uint8_t *p)
 	}
 	return result;
 }
-

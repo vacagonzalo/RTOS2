@@ -52,7 +52,7 @@ extern "C"
         uint32_t baudRate;
     } t_UART_config;
 
-    typedef char *tMensaje; // String
+    //typedef char *tMensaje; // String
 
     /*=====[Prototypes (declarations) of public functions]=======================*/
 

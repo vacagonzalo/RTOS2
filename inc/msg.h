@@ -38,7 +38,7 @@ extern "C"
     {
         uint32_t index;
         uint8_t length;
-        tMensaje ptr;
+        uint8_t *ptr;
     } queueRecievedFrame_t;
 
     typedef struct
