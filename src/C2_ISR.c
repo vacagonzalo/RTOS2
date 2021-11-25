@@ -165,7 +165,7 @@ void uartUsbSendCallback(void *param)
 	while (uartTxReady(uart_configs[index].uartName) == FALSE)
 		;
 	uartTxWrite(uart_configs[index].uartName, (uint8_t)*pDataToSend);
-	uartCallbackClr(uart_configs[index].uartName, UART_TRANSMITER_FREE);
+	uartClearPendingInterrupt(uart_configs[index].uartName);
 	xSemaphoreGiveFromISR(msg[index].semphrC2ISR, &xHigherPriorityTaskWoken);
 }
 

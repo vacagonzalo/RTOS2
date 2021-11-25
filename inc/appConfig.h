@@ -35,12 +35,15 @@ extern "C"
 
 #define OFFSET_CRC 2
 #define OFFSET_ID 5
+#define COMAND_ID 6
+#define START_DATA 7
 #define DISCART_FRAME 3
 #define FRAME_ID_LENGTH 4
 #define FRAME_CRCEOF_LENGTH 4
 #define FRAME_CDATA_DISCART_LENGTH 8
 #define OFFSET_SOF 1
 #define COM_DATA_ERROR 3
+#define MAX_NUMBER_OF_WORDS 15
 
     /*=====[Public function-like macros]=========================================*/
 

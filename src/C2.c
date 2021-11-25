@@ -146,9 +146,9 @@ void C2_task_out(void *param)
 
         uint32_t i = 0;
         pDataToSend = datosC3C2.ptr;
+        uartCallbackSet(uart_configs[index].uartName, UART_TRANSMITER_FREE, uartUsbSendCallback, (void *)index);
         while (pDataToSend < (datosC3C2.ptr + datosC3C2.length + DISCART_FRAME))
         {
-            uartCallbackSet(uart_configs[index].uartName, UART_TRANSMITER_FREE, uartUsbSendCallback, (void *)index);
             uartSetPendingInterrupt(uart_configs[index].uartName);
             // Espera semaforo para terminar de enviar el mensaje por ISR
             if (xSemaphoreTake(msg[index].semphrC2ISR, 0) == pdTRUE)
@@ -156,6 +156,7 @@ void C2_task_out(void *param)
                 pDataToSend++;
             }
         }
+        uartCallbackClr(uart_configs[index].uartName, UART_TRANSMITER_FREE);
 
         // Libero el bloque de memoria que ya fue trasmitido
         QMPool_put(&Pool_memoria, datosC3C2.ptr);

@@ -91,13 +91,13 @@ void C3_task(void *param)
             // Pasar a Snake es lo mismo desde pascal o camel!
             if (datosC3C2.ptr[OFFSET_ID] == 'S')
             {
-                uint32_t i = OFFSET_ID+1;
+                uint32_t i = COMAND_ID;
                 while (i < datosC3C2.length)
                 {
                     if (datosC3C2.ptr[i] >= 'A' && datosC3C2.ptr[i] <= 'Z')
                     {
                         datosC3C2.ptr[i] += 32;
-                        if (i != OFFSET_ID+1)
+                        if (i != COMAND_ID)
                         {
                             datosC3C2.length++;
                             memmove(datosC3C2.ptr + i + 1, datosC3C2.ptr + i, datosC3C2.length - i);
@@ -110,7 +110,7 @@ void C3_task(void *param)
             }
             else if (datosC3C2.ptr[OFFSET_ID] == 'P')
             {
-                uint32_t i = OFFSET_ID+1;
+                uint32_t i = COMAND_ID;
                 while (i < datosC3C2.length)
                 {
                     if (datosC3C2.ptr[i] == '_')
@@ -125,7 +125,7 @@ void C3_task(void *param)
                     }
                     else
                     {
-                        if (i == OFFSET_ID+1)
+                        if (i == COMAND_ID)
                         {
                             datosC3C2.ptr[i] -= 32;
                         }                        
@@ -135,7 +135,7 @@ void C3_task(void *param)
             }
             else if  (datosC3C2.ptr[OFFSET_ID] == 'C')
             {
-                uint32_t i = OFFSET_ID+1;
+                uint32_t i = COMAND_ID;
                 while (i < datosC3C2.length)
                 {
                     if (datosC3C2.ptr[i] == '_')
@@ -146,7 +146,7 @@ void C3_task(void *param)
                     }
                     else if (datosC3C2.ptr[i] >= 'A' && datosC3C2.ptr[i] <= 'Z')
                     {
-                        if (i == OFFSET_ID+1)
+                        if (i == COMAND_ID)
                         {
                             datosC3C2.ptr[i] += 32;
                         }
@@ -192,7 +192,7 @@ errorType_t digestor(queueRecievedFrame_t dato)
     flagType_t flagType = NONE;
     uint8_t words = 1;
 
-    for (uint32_t i = OFFSET_ID + 1; i < dato.length - DISCART_FRAME; ++i)
+    for (uint32_t i = COMAND_ID; i < dato.length - DISCART_FRAME; ++i)
     {
         switch (flagType)
         {
@@ -200,7 +200,7 @@ errorType_t digestor(queueRecievedFrame_t dato)
             if (dato.ptr[i] == ' ')
             {
                 flagType = SPACE;
-                dato.ptr[i] = '_';
+                dato.ptr[i] = '_'; // Convierte separacion con espacio en snake
             }
             else if (dato.ptr[i] == '_')
             {
@@ -219,7 +219,7 @@ errorType_t digestor(queueRecievedFrame_t dato)
             else if (dato.ptr[i] == ' ')
             {
                 words++;
-                dato.ptr[i] = '_';
+                dato.ptr[i] = '_'; // Convierte separacion con espacio en snake
             }
             break;
         case UNDER:
@@ -262,7 +262,7 @@ errorType_t digestor(queueRecievedFrame_t dato)
         }
 
         // Chequeo de cantidad de palabras en el frame
-        if (words > 15)
+        if (words > MAX_NUMBER_OF_WORDS)
         {
             return ERROR_INVALID_DATA;
         }
