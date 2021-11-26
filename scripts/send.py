@@ -4,13 +4,16 @@ import time
 
 def main():
     with Serial('/dev/ttyUSB1', 115200) as s:
-        #Paquete correcto 1
-        s.write(b'(0000alohaFF)')
-        time.sleep(0.1)
-        res = s.read_all()
-        print(res)
+        indice = 0
+        for indice in range(100):
+            #Paquete correcto 1
+            s.write(b'(0000SAbc__dEfghIjklmnOpqrstUvwxyz91)')
+            #s.write(b'(0097PSkynzaRxuUgwfidcohAqtwlfskdYyonemendSnycvQknayuyyWrteqjzeJcoseqonnRixDmezdjbupaGyczmsnwbtGhmkEA)')
+            time.sleep(0.05)
+            res = s.read_all()
+            print(res)
 
-        #Error de TimeOut
+        #Error de TimeOuts
         s.write(b'(0001al')
         time.sleep(0.005)
         s.write(b'ohaFF)')
@@ -47,13 +50,13 @@ def main():
         print(res)
         
         # Error Invalid Char
-        s.write(b'(0008aloha?00)')
+        s.write(b'(0008Paloha?00)')
         time.sleep(0.1)
         res = s.read_all()
         print(res)
         
         #Paquete correcto 2
-        s.write(b'(0009ChauchaFF)')
+        s.write(b'(0009CChauchaFF)')
         time.sleep(0.1)
         res = s.read_all()
         print(res)

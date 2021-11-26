@@ -30,7 +30,7 @@ extern QMPool Pool_memoria;
 extern uint8_t *pDataToSend;
 extern t_UART_config uart_configs[];
 extern void uartUsbSendCallback(void *param);
-void int2ascii (uint8_t *p, uint8_t crc);
+void int2ascii(uint8_t *p, uint8_t crc);
 
 typedef struct
 {
@@ -90,7 +90,7 @@ void C2_task_in(void *param)
     {
         // Pedido de memoria al Pool
         datosC1C2.ptr = QMPool_get(&Pool_memoria, 0); //pido un bloque del pool
-        configASSERT(datosC1C2.ptr != NULL);                    //<-- Gestion de errores
+        configASSERT(datosC1C2.ptr != NULL);          //<-- Gestion de errores
 
         xQueueReceive(msg[index].queueISRC2, datosC1C2.ptr, portMAX_DELAY); // Esperamos el caracter
         datosC1C2.length = (uint8_t)datosC1C2.ptr[FRAME_MAX_LENGTH];
@@ -137,7 +137,7 @@ void C2_task_out(void *param)
         xQueueReceive(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
         // calculo de CRC a enviar
         uint8_t crcCalc = crc8_calc(crc8_init(), datosC3C2.ptr + OFFSET_SOF, datosC3C2.length - OFFSET_SOF);
-        int2ascii (crc_eof,crcCalc);
+        int2ascii(crc_eof, crcCalc);
         // CRC y EOF
         for (uint8_t i = 0; i < FRAME_CRCEOF_LENGTH; i++)
         {
@@ -164,12 +164,12 @@ void C2_task_out(void *param)
     }
 }
 
-void int2ascii (uint8_t *p, uint8_t crc)
+void int2ascii(uint8_t *p, uint8_t crc)
 {
     uint8_t msn, lsn;
 
-    msn = crc/16;
-    lsn = crc-msn*16;
+    msn = crc / 16;
+    lsn = crc - msn * 16;
 
     if (msn < 10)
     {
@@ -177,15 +177,15 @@ void int2ascii (uint8_t *p, uint8_t crc)
     }
     else
     {
-       p[0] = msn-10 + 'A';
+        p[0] = msn - 10 + 'A';
     }
-    
+
     if (lsn < 10)
     {
         p[1] = lsn + '0';
     }
     else
     {
-       p[1] = lsn-10 + 'A';
-    }    
+        p[1] = lsn - 10 + 'A';
+    }
 }
