@@ -115,7 +115,7 @@ void C3_task(void *param)
                 {
                     if (datosC3C2.ptr[i] == '_')
                     {
-                        datosC3C2.ptr[i+1] -= 32;
+                        datosC3C2.ptr[i + 1] -= 32;
                         memmove(datosC3C2.ptr + i, datosC3C2.ptr + i + 1, datosC3C2.length - i);
                         datosC3C2.length--;
                     }
@@ -128,19 +128,19 @@ void C3_task(void *param)
                         if (i == COMAND_ID)
                         {
                             datosC3C2.ptr[i] -= 32;
-                        }                        
+                        }
                     }
                     i++;
                 }
             }
-            else if  (datosC3C2.ptr[OFFSET_ID] == 'C')
+            else if (datosC3C2.ptr[OFFSET_ID] == 'C')
             {
                 uint32_t i = COMAND_ID;
                 while (i < datosC3C2.length)
                 {
                     if (datosC3C2.ptr[i] == '_')
                     {
-                        datosC3C2.ptr[i+1] -= 32;
+                        datosC3C2.ptr[i + 1] -= 32;
                         memmove(datosC3C2.ptr + i, datosC3C2.ptr + i + 1, datosC3C2.length - i);
                         datosC3C2.length--;
                     }
@@ -154,7 +154,7 @@ void C3_task(void *param)
                     }
                     i++;
                 }
-            }            
+            }
             // Envio a C2 via queueC3C2
             xQueueSend(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);
             break;
@@ -189,11 +189,19 @@ errorType_t digestor(queueRecievedFrame_t dato)
         return ERROR_INVALID_DATA;
     }
 
+    /* Chequear comando invalido */
+    if (dato.ptr[OFFSET_ID] != 'S' && dato.ptr[OFFSET_ID] != 'C' && dato.ptr[OFFSET_ID] != 'P')
+    {
+        return ERROR_INVALID_OPCODE;
+    }
+
     flagType_t flagType = NONE;
     uint8_t words = 1;
+    uint32_t contCharsMax = 0;
 
     for (uint32_t i = COMAND_ID; i < dato.length - DISCART_FRAME; ++i)
     {
+        contCharsMax++;
         switch (flagType)
         {
         case NONE:
@@ -201,14 +209,17 @@ errorType_t digestor(queueRecievedFrame_t dato)
             {
                 flagType = SPACE;
                 dato.ptr[i] = '_'; // Convierte separacion con espacio en snake
+                contCharsMax = 0;
             }
             else if (dato.ptr[i] == '_')
             {
                 flagType = UNDER;
+                contCharsMax = 0;
             }
             else if (dato.ptr[i] >= 'A' && dato.ptr[i] <= 'Z')
             {
                 flagType = MAYUS;
+                contCharsMax = 1;
             }
             break;
         case SPACE:
@@ -220,6 +231,7 @@ errorType_t digestor(queueRecievedFrame_t dato)
             {
                 words++;
                 dato.ptr[i] = '_'; // Convierte separacion con espacio en snake
+                contCharsMax = 0;
             }
             break;
         case UNDER:
@@ -230,6 +242,7 @@ errorType_t digestor(queueRecievedFrame_t dato)
             else if (dato.ptr[i] == '_')
             {
                 words++;
+                contCharsMax = 0;
             }
             break;
         case MAYUS:
@@ -240,6 +253,7 @@ errorType_t digestor(queueRecievedFrame_t dato)
             else if (dato.ptr[i] >= 'A' && dato.ptr[i] <= 'Z')
             {
                 words++;
+                contCharsMax = 0;
             }
             break;
         default:
@@ -266,11 +280,12 @@ errorType_t digestor(queueRecievedFrame_t dato)
         {
             return ERROR_INVALID_DATA;
         }
-    }
-    /* Chequear comando invalido */
-    if (dato.ptr[OFFSET_ID] != 'S' && dato.ptr[OFFSET_ID] != 'C' && dato.ptr[OFFSET_ID] != 'P')
-    {
-        return ERROR_INVALID_OPCODE;
+
+        // Chequeo de cantidad de letras en el frame
+        if (contCharsMax > MAX_NUMBER_OF_LETTERS)
+        {
+            return ERROR_INVALID_DATA;
+        }
     }
 
     return NO_ERROR;
