@@ -1,11 +1,11 @@
 from serial import Serial
 
 def main():
-    with Serial('/dev/ttyUSB1', 115200, timeout=0.02) as s:
-        msg = b'(0000SAbcdEfghIjklmnOpqrstUvwxyz91)'
-        con = b'(0000Sabcd_efgh_ijklmn_opqrst_uvwxyz1D)'
+    with Serial('/dev/ttyUSB0', 115200, timeout=0.016) as s:
+        msg = b'(0012CZstirIrmxzquvbYirkolpC0)'
+        con = b'(0012CzstirIrmxzquvbYirkolp08)'
         eCount = 0
-        for i in range(100):
+        for i in range(1000):
             s.write(msg)
             if s.readline() != con:
                 eCount = eCount + 1
