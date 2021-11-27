@@ -67,7 +67,7 @@ void C2_init(void)
             (const char *)"C2_task_out",  // Text name for the task.
             configMINIMAL_STACK_SIZE * 4, // Stack size in words, not bytes.
             (void *)i,                    // Parameter passed into the task.
-            tskIDLE_PRIORITY + 1,         // Priority at which the task is created.
+            tskIDLE_PRIORITY + 2,         // Priority at which the task is created.
             0                             // Pointer to the task created in the system
         );
         configASSERT(res == pdPASS);
@@ -144,7 +144,6 @@ void C2_task_out(void *param)
             datosC3C2.ptr[datosC3C2.length + i] = crc_eof[i];
         }
 
-        uint32_t i = 0;
         pDataToSend = datosC3C2.ptr;
         uartCallbackSet(uart_configs[index].uartName, UART_TRANSMITER_FREE, uartUsbSendCallback, (void *)index);
         while (pDataToSend < (datosC3C2.ptr + datosC3C2.length + DISCART_FRAME))

@@ -48,7 +48,10 @@ busca una secuencia en una lista de comando/respuesta, y si lo encuientra devuel
 '''
 def c2_buscar_rta_con_secuencia(lista , seq):
     for rta in lista:
-        sec_rx = int(rta[1:5])
+        try:
+            sec_rx = int(rta[1:5])
+        except:
+            sec_rx = int(rta[2:6])
 
         if(sec_rx==seq):
             return rta
