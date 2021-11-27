@@ -57,5 +57,5 @@ def serial_choose():
 
         chosen_serial = available_serial[int(ser)]
 
-    print("Puerto serie elegido : " + chosen_serial)
+  
     return chosen_serial
