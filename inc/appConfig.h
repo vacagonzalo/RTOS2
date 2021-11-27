@@ -44,7 +44,6 @@ extern "C"
 #define OFFSET_SOF 1
 #define COM_DATA_ERROR 3
 #define MAX_NUMBER_OF_WORDS 15
-#define MAX_NUMBER_OF_LETTERS 10
 
     /*=====[Public function-like macros]=========================================*/
 
