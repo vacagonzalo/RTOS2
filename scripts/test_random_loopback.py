@@ -88,7 +88,6 @@ def main():
 
     #seleccion de puerto serie
     puerto = serial_choose()
-    print("Puerto serie elegido : " + puerto)
 
     if(not puerto):
         return

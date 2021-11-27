@@ -18,11 +18,11 @@ ERR_MEM     =   Errors.index("NO_MEM")
 
 
 #configuracion particular del test
-DEFAULT_CMD_NRO = 1000
-DEFAULT_ERRORS  = round(0.0 * DEFAULT_CMD_NRO)   #Asi falla el 10%
+DEFAULT_CMD_NRO = 100
+DEFAULT_ERRORS  = round(0.1 * DEFAULT_CMD_NRO)   #Asi falla el 10%
 
 Port = None
-WaitTime = 0.01
+WaitTime = 0.1
 t_repeat = 1
 
 sec = 0
@@ -156,7 +156,6 @@ def main():
 
     #seleccion de puerto serie
     puerto = serial_choose()
-    print("Puerto serie elegido : " + puerto)
 
     #declaro el objeto de puerto serie (sin abrirlo)
     Port = serial.Serial()
