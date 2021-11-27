@@ -1,9 +1,9 @@
 from serial import Serial
 
 def main():
-    with Serial('/dev/ttyUSB0', 115200, timeout=0.0157) as s:
-        msg = b'(0034SethardzpIDsPbvbxaayxwJnisbIvztOrhqyhsxdNwttkIaoXxVsfcfsHdcwyyxptZhczenriFpZqk29)'
-        con = b'(0034Sethardzp_i_ds_pbvbxaayxw_jnisb_ivzt_orhqyhsxd_nwttk_iao_xx_vsfcfs_hdcwyyxpt_zhczenri_fp_zqk86)'
+    with Serial('/dev/ttyUSB1', 115200, timeout=0.02) as s:
+        msg = b'(9886SdeqovNqeuIKnnddiegLezEjqpCsoplxnyHyujwasojCZszdSacthoyocYglnqkfc95)'
+        con = b'(9886Sdeqov_nqeu_i_knnddieg_lez_ejqp_csoplxny_hyujwasoj_c_zszd_sacthoyoc_yglnqkfcEA)'
         rta = b''
         eCount = 0
         for i in range(1000):

@@ -56,7 +56,7 @@ void C2_init(void)
             (const char *)"C2_task_in",   // Text name for the task.
             configMINIMAL_STACK_SIZE * 4, // Stack size in words, not bytes.
             (void *)i,                    // Parameter passed into the task.
-            tskIDLE_PRIORITY + 1,         // Priority at which the task is created.
+            tskIDLE_PRIORITY + 3,         // Priority at which the task is created.
             0                             // Pointer to the task created in the system
         );
         configASSERT(res == pdPASS);
@@ -67,7 +67,7 @@ void C2_init(void)
             (const char *)"C2_task_out",  // Text name for the task.
             configMINIMAL_STACK_SIZE * 4, // Stack size in words, not bytes.
             (void *)i,                    // Parameter passed into the task.
-            tskIDLE_PRIORITY + 2,         // Priority at which the task is created.
+            tskIDLE_PRIORITY + 4,         // Priority at which the task is created.
             0                             // Pointer to the task created in the system
         );
         configASSERT(res == pdPASS);
@@ -95,15 +95,6 @@ void C2_task_in(void *param)
         xQueueReceive(msg[index].queueISRC2, datosC1C2.ptr, portMAX_DELAY); // Esperamos el caracter
         datosC1C2.length = (uint8_t)datosC1C2.ptr[FRAME_MAX_LENGTH];
 
-        /*taskENTER_CRITICAL();
-        printf("C1 to C2: ");
-        for (uint8_t i = 0; i < datosC1C2.length; i++)
-        {
-            printf("%c", datosC1C2.ptr[i]);
-        }
-        printf("\r\n");
-        taskEXIT_CRITICAL();*/
-
         // Parseo de ID y envio a C2_task_out via queueC2InOut
         memcpy(datosC2InOut.ptr, datosC1C2.ptr + 1, datosC2InOut.length);
         xQueueSend(C2_instances[index].queueC2InOut, &datosC2InOut, portMAX_DELAY);
@@ -125,16 +116,7 @@ void C2_task_out(void *param)
     while (TRUE)
     {
         xQueueReceive(C2_instances[index].queueC2InOut, &datosID, portMAX_DELAY); // Esperamos el ID
-        // taskENTER_CRITICAL();
-        // printf("C2In to C2Out: ID=");
-        // for (uint8_t i = 0; i < datosID.length; i++)
-        // {
-        //     printf("%c", datosID.ptr[i]);
-        // }
-        // printf("\r\n");
-        // taskEXIT_CRITICAL();
-
-        xQueueReceive(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
+        xQueueReceive(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);           // Esperamos el DATO
         // calculo de CRC a enviar
         uint8_t crcCalc = crc8_calc(crc8_init(), datosC3C2.ptr + OFFSET_SOF, datosC3C2.length - OFFSET_SOF);
         int2ascii(crc_eof, crcCalc);
