@@ -13,8 +13,4 @@ RX_TIMEOUT = 1
 
 #tiempo de espera entre frames enviados. En segundos.
 #puede ser 0
-<<<<<<< HEAD
-T_INTER_FRAME = 0.001#0.003 #SEGUNDOS
-=======
-T_INTER_FRAME = 0.005#0.003 #SEGUNDOS
->>>>>>> parent of 2ef02fc... Se agrega control de letras maximas por palabras.
+# T_INTER_FRAME = 0.001#0.003 #SEGUNDOS
