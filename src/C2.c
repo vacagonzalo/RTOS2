@@ -24,6 +24,7 @@
 #include "qmpool.h"
 #include "semphr.h"
 #include "crc8.h"
+#include "C2_ISR.h"
 
 extern msg_t msg[UARTS_TO_USE];
 extern QMPool Pool_memoria;
@@ -35,40 +36,38 @@ void int2ascii(uint8_t *p, uint8_t crc);
 void C2_task_in(void *param);
 void C2_task_out(void *param);
 
-void C2_init(void)
+void C2_init(config_t *config)
 {
+    static uint32_t index = 0;
+    config->index = index;
     BaseType_t res;
+    // Create a task in freeRTOS with dynamic memory
+    res = xTaskCreate(
+        C2_task_in,                   // Function that implements the task.
+        (const char *)"C2_task_in",   // Text name for the task.
+        configMINIMAL_STACK_SIZE * 2, // Stack size in words, not bytes.
+        (void *)config,                    // Parameter passed into the task.
+        tskIDLE_PRIORITY + 3,         // Priority at which the task is created.
+        0                             // Pointer to the task created in the system
+    );
+    configASSERT(res == pdPASS);
 
-    for (uint32_t i = 0; i < UARTS_TO_USE; ++i)
-    {
-
-        // Create a task in freeRTOS with dynamic memory
-        res = xTaskCreate(
-            C2_task_in,                   // Function that implements the task.
-            (const char *)"C2_task_in",   // Text name for the task.
-            configMINIMAL_STACK_SIZE * 2, // Stack size in words, not bytes.
-            (void *)i,                    // Parameter passed into the task.
-            tskIDLE_PRIORITY + 3,         // Priority at which the task is created.
-            0                             // Pointer to the task created in the system
-        );
-        configASSERT(res == pdPASS);
-
-        // Create a task in freeRTOS with dynamic memory
-        res = xTaskCreate(
-            C2_task_out,                  // Function that implements the task.
-            (const char *)"C2_task_out",  // Text name for the task.
-            configMINIMAL_STACK_SIZE * 2, // Stack size in words, not bytes.
-            (void *)i,                    // Parameter passed into the task.
-            tskIDLE_PRIORITY + 4,         // Priority at which the task is created.
-            0                             // Pointer to the task created in the system
-        );
-        configASSERT(res == pdPASS);
-    }
+    // Create a task in freeRTOS with dynamic memory
+    res = xTaskCreate(
+        C2_task_out,                  // Function that implements the task.
+        (const char *)"C2_task_out",  // Text name for the task.
+        configMINIMAL_STACK_SIZE * 2, // Stack size in words, not bytes.
+        (void *)config,                    // Parameter passed into the task.
+        tskIDLE_PRIORITY + 4,         // Priority at which the task is created.
+        0                             // Pointer to the task created in the system
+    );
+    configASSERT(res == pdPASS);
+    ++index;
 }
 
 void C2_task_in(void *param)
 {
-    uint32_t index = (uint32_t)param;
+    config_t *config = (config_t *) param;
     queueRecievedFrame_t datosC2C3;
 
     while (TRUE)
@@ -77,22 +76,22 @@ void C2_task_in(void *param)
         datosC2C3.ptr = QMPool_get(&Pool_memoria, 0); //pido un bloque del pool
         configASSERT(datosC2C3.ptr != NULL);          //<-- Gestion de errores
 
-        xQueueReceive(msg[index].queueISRC2, datosC2C3.ptr, portMAX_DELAY); // Esperamos el frame
+        xQueueReceive(msg[config->index].queueISRC2, datosC2C3.ptr, portMAX_DELAY); // Esperamos el frame
         datosC2C3.length = (uint8_t)datosC2C3.ptr[FRAME_MAX_LENGTH];
-        xQueueSend(msg[index].queueC2C3, &datosC2C3, portMAX_DELAY); // Manda a C3 a procesar
+        xQueueSend(msg[config->index].queueC2C3, &datosC2C3, portMAX_DELAY); // Manda a C3 a procesar
     }
 }
 
 void C2_task_out(void *param)
 {
-    uint32_t index = (uint32_t)param;
+    config_t *config = (config_t *)param;
     queueRecievedFrame_t datosC3C2;
     uint8_t crc_eof[FRAME_CRCEOF_LENGTH];
     crc_eof[2] = ')';
     crc_eof[3] = '\0'; // TODO Borrar.
     while (TRUE)
     {
-        xQueueReceive(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
+        xQueueReceive(msg[config->index].queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
         // calculo de CRC a enviar
         uint8_t crcCalc = crc8_calc(crc8_init(), datosC3C2.ptr + OFFSET_SOF, datosC3C2.length - OFFSET_SOF);
         int2ascii(crc_eof, crcCalc);
@@ -103,17 +102,17 @@ void C2_task_out(void *param)
         }
 
         pDataToSend = datosC3C2.ptr;
-        uartCallbackSet(uart_configs[index].uartName, UART_TRANSMITER_FREE, uartUsbSendCallback, (void *)index);
+        uartCallbackSet(config->uart, UART_TRANSMITER_FREE, uartUsbSendCallback, (void *)config);
         while (pDataToSend < (datosC3C2.ptr + datosC3C2.length + DISCART_FRAME))
         {
-            uartSetPendingInterrupt(uart_configs[index].uartName);
+            uartSetPendingInterrupt(config->uart);
             // Espera semaforo para terminar de enviar el mensaje por ISR
-            if (xSemaphoreTake(msg[index].semphrC2ISR, 0) == pdTRUE)
+            if (xSemaphoreTake(msg[config->index].semphrC2ISR, 0) == pdTRUE)
             {
                 pDataToSend++;
             }
         }
-        uartCallbackClr(uart_configs[index].uartName, UART_TRANSMITER_FREE);
+        uartCallbackClr(config->uart, UART_TRANSMITER_FREE);
 
         // Libero el bloque de memoria que ya fue trasmitido
         QMPool_put(&Pool_memoria, datosC3C2.ptr);

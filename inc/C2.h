@@ -20,15 +20,16 @@
 extern "C"
 {
 #endif
-    //#include <inttypes.h>
+    #include "wrapper.h"
     /*=====[Definition macros of public constants]===============================*/
 
     /*=====[Public function-like macros]=========================================*/
 
     /*=====[Definitions of public data types]====================================*/
+
     /*=====[Prototypes (declarations) of public functions]=======================*/
 
-    void C2_init(void);
+    void C2_init(config_t *config);
 
     /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 

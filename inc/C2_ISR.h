@@ -20,7 +20,7 @@
 extern "C"
 {
 #endif
-#include <inttypes.h>
+#include "wrapper.h"
 /*=====[Definition macros of public constants]===============================*/
 
     /*=====[Public function-like macros]=========================================*/
@@ -29,7 +29,7 @@ extern "C"
 
     /*=====[Prototypes (declarations) of public functions]=======================*/
 
-    void ISR_init(void);
+    void ISR_init(config_t *config);
 
     /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 

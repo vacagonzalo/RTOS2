@@ -18,8 +18,7 @@
 #include "sapi.h"
 #include "userTasks.h"
 #include "msg.h"
-#include "C2_ISR.h"
-#include "C2.h"
+#include "wrapper.h"
 #include "C3.h"
 #include "appConfig.h"
 #include "qmpool.h"
@@ -44,10 +43,12 @@ int main(void)
    configASSERT(Pool_puntero != NULL);
    //	Creo el pool de memoria que va a usarse para la transmision
    QMPool_init(&Pool_memoria, Pool_puntero, POOL_SIZE * sizeof(uint8_t), PACKET_SIZE); //Tamanio del segmento de memoria reservado
-
+   static config_t config = {
+       .uart = UART_USB,
+       .baud = 115200,
+       .index = 0};
    queue_init();
-   ISR_init();
-   C2_init();
+   initWrapper(&config);
    C3_init();
 
    BaseType_t res;
