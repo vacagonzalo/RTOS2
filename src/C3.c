@@ -45,7 +45,7 @@ void C3_init(void)
         res = xTaskCreate(
             C3_task,                      // Function that implements the task.
             (const char *)"C3_task",      // Text name for the task.
-            configMINIMAL_STACK_SIZE * 4, // Stack size in words, not bytes.
+            configMINIMAL_STACK_SIZE * 2, // Stack size in words, not bytes.
             (void *)i,                    // Parameter passed into the task.
             tskIDLE_PRIORITY + 2,         // Priority at which the task is created.
             0                             // Pointer to the task created in the system

@@ -46,7 +46,7 @@ void C2_init(void)
         res = xTaskCreate(
             C2_task_in,                   // Function that implements the task.
             (const char *)"C2_task_in",   // Text name for the task.
-            configMINIMAL_STACK_SIZE * 4, // Stack size in words, not bytes.
+            configMINIMAL_STACK_SIZE * 2, // Stack size in words, not bytes.
             (void *)i,                    // Parameter passed into the task.
             tskIDLE_PRIORITY + 3,         // Priority at which the task is created.
             0                             // Pointer to the task created in the system
@@ -57,7 +57,7 @@ void C2_init(void)
         res = xTaskCreate(
             C2_task_out,                  // Function that implements the task.
             (const char *)"C2_task_out",  // Text name for the task.
-            configMINIMAL_STACK_SIZE * 4, // Stack size in words, not bytes.
+            configMINIMAL_STACK_SIZE * 2, // Stack size in words, not bytes.
             (void *)i,                    // Parameter passed into the task.
             tskIDLE_PRIORITY + 4,         // Priority at which the task is created.
             0                             // Pointer to the task created in the system

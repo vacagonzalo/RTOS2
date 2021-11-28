@@ -28,8 +28,8 @@ extern "C"
 #endif
 
     /*=====[Definition macros of public constants]===============================*/
-#define RECIEVED_FRAME_QUEUE_SIZE 6
-#define PROCESS_FRAME_QUEUE_SIZE 6
+#define RECIEVED_FRAME_QUEUE_SIZE 7
+#define PROCESS_FRAME_QUEUE_SIZE 7
 
     /*=====[Public function-like macros]=========================================*/
 

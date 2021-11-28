@@ -56,7 +56,7 @@ int main(void)
    res = xTaskCreate(
        myTask,                       // Function that implements the task.
        (const char *)"myTask",       // Text name for the task.
-       configMINIMAL_STACK_SIZE * 2, // Stack size in words, not bytes.
+       configMINIMAL_STACK_SIZE * 1, // Stack size in words, not bytes.
        0,                            // Parameter passed into the task.
        tskIDLE_PRIORITY + 1,         // Priority at which the task is created.
        0                             // Pointer to the task created in the system
