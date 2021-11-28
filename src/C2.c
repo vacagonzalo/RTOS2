@@ -29,17 +29,9 @@ extern msg_t msg[UARTS_TO_USE];
 extern QMPool Pool_memoria;
 extern uint8_t *pDataToSend;
 extern t_UART_config uart_configs[];
+
 extern void uartUsbSendCallback(void *param);
 void int2ascii(uint8_t *p, uint8_t crc);
-
-typedef struct
-{
-    QueueHandle_t queueC2InOut;
-    uint8_t index;
-} C2_t;
-
-C2_t C2_instances[UARTS_TO_USE];
-
 void C2_task_in(void *param);
 void C2_task_out(void *param);
 
@@ -71,37 +63,26 @@ void C2_init(void)
             0                             // Pointer to the task created in the system
         );
         configASSERT(res == pdPASS);
-
-        // Crear cola para impresion de puntaje
-        C2_instances[i].queueC2InOut = xQueueCreate(RECIEVED_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
-        configASSERT(C2_instances[i].queueC2InOut != NULL);
     }
 }
 
 void C2_task_in(void *param)
 {
     uint32_t index = (uint32_t)param;
-    queueRecievedFrame_t datosC2C3, datosC2InOut, datosC1C2;
-    datosC2InOut.length = FRAME_ID_LENGTH;
-    datosC2InOut.ptr = pvPortMalloc(FRAME_ID_LENGTH * sizeof(uint8_t));
-    configASSERT(datosC2InOut.ptr != NULL);
+    queueRecievedFrame_t datosC2C3, datosISRC2;
 
     while (TRUE)
     {
         // Pedido de memoria al Pool
-        datosC1C2.ptr = QMPool_get(&Pool_memoria, 0); //pido un bloque del pool
-        configASSERT(datosC1C2.ptr != NULL);          //<-- Gestion de errores
+        datosISRC2.ptr = QMPool_get(&Pool_memoria, 0); //pido un bloque del pool
+        configASSERT(datosISRC2.ptr != NULL);          //<-- Gestion de errores
 
-        xQueueReceive(msg[index].queueISRC2, datosC1C2.ptr, portMAX_DELAY); // Esperamos el caracter
-        datosC1C2.length = (uint8_t)datosC1C2.ptr[FRAME_MAX_LENGTH];
-
-        // Parseo de ID y envio a C2_task_out via queueC2InOut
-        memcpy(datosC2InOut.ptr, datosC1C2.ptr + 1, datosC2InOut.length);
-        xQueueSend(C2_instances[index].queueC2InOut, &datosC2InOut, portMAX_DELAY);
+        xQueueReceive(msg[index].queueISRC2, datosISRC2.ptr, portMAX_DELAY); // Esperamos el frame
+        datosISRC2.length = (uint8_t)datosISRC2.ptr[FRAME_MAX_LENGTH];
 
         // Parseo de C+Data y envio a C3 via queueC2C3
-        datosC2C3.length = datosC1C2.length;
-        datosC2C3.ptr = datosC1C2.ptr;
+        datosC2C3.length = datosISRC2.length;
+        datosC2C3.ptr = datosISRC2.ptr;
         xQueueSend(msg[index].queueC2C3, &datosC2C3, portMAX_DELAY);
     }
 }
@@ -115,7 +96,6 @@ void C2_task_out(void *param)
     crc_eof[3] = '\0'; // TODO Borrar.
     while (TRUE)
     {
-        xQueueReceive(C2_instances[index].queueC2InOut, &datosID, portMAX_DELAY); // Esperamos el ID
         xQueueReceive(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);           // Esperamos el DATO
         // calculo de CRC a enviar
         uint8_t crcCalc = crc8_calc(crc8_init(), datosC3C2.ptr + OFFSET_SOF, datosC3C2.length - OFFSET_SOF);

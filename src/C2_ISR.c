@@ -26,13 +26,13 @@
 #define RECIEVED_CHAR_QUEUE_SIZE 10
 #define FRAME_START (c == '(')
 #define END_FRAME (c == ')')
-#define VALID_CHAR (c == ' ' || c == '_' || (c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A) || (c >= 0x30 && c <= 0x39))
+#define VALID_CHAR (c == ' ' || c == '_' || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))
 #define MAX_AMOUNT_OF_UARTS 3
 #define FRAME_MINIMUN_VALID_LENGTH 9
-#define VALID_ID_CHAR (c >= 0x41 && c <= 0x46) || (c >= 0x30 && c <= 0x39)
+#define VALID_ID_CHAR (c >= 'A' && c <= 'F') || (c >= '0' && c <= '9')
 #define ID_LOCATION 5
-#define VALID_CRC_CHAR1 ((ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 2] >= 0x41 && ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 2] <= 0x46) || (ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 2] >= 0x30 && ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 2] <= 0x39))
-#define VALID_CRC_CHAR2 ((ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 1] >= 0x41 && ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 1] <= 0x46) || (ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 1] >= 0x30 && ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 1] <= 0x39))
+#define VALID_CRC_CHAR1 ((ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 2] >= 'A' && ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 2] <= 'F') || (ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 2] >= '0' && ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 2] <= '9'))
+#define VALID_CRC_CHAR2 ((ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 1] >= 'A' && ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 1] <= 'F') || (ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 1] >= '0' && ISR_FSM[index].pktRecieved[ISR_FSM[index].countChars - 1] <= '9'))
 
 typedef enum
 {
@@ -83,7 +83,6 @@ void ISR_init(void)
 		ISR_FSM[i].timeOut = xTimerCreate("timeOut", TIMEOUT_PERIOD_TICKS, pdFALSE, (void *)i, onTime);
 		configASSERT(ISR_FSM[i].timeOut);
 		ISR_FSM[i].state = ISR_IDLE;
-		ISR_FSM[i].countChars = 0;
 	}
 }
 
