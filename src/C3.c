@@ -39,16 +39,19 @@ void C3_init(void)
 {
     BaseType_t res;
 
-    // Create a task in freeRTOS with dynamic memory
-    res = xTaskCreate(
-        C3_task,                      // Function that implements the task.
-        (const char *)"C3_task",      // Text name for the task.
-        configMINIMAL_STACK_SIZE * 4, // Stack size in words, not bytes.
-        0,                            // Parameter passed into the task.
-        tskIDLE_PRIORITY + 2,         // Priority at which the task is created.
-        0                             // Pointer to the task created in the system
-    );
-    configASSERT(res == pdPASS);
+    for (uint32_t i = 0; i < UARTS_TO_USE; ++i)
+    {
+        // Create a task in freeRTOS with dynamic memory
+        res = xTaskCreate(
+            C3_task,                      // Function that implements the task.
+            (const char *)"C3_task",      // Text name for the task.
+            configMINIMAL_STACK_SIZE * 4, // Stack size in words, not bytes.
+            (void *)i,                    // Parameter passed into the task.
+            tskIDLE_PRIORITY + 2,         // Priority at which the task is created.
+            0                             // Pointer to the task created in the system
+        );
+        configASSERT(res == pdPASS);
+    }
 }
 
 void C3_task(void *param)
