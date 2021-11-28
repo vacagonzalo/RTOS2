@@ -47,9 +47,7 @@ int main(void)
        .uart = UART_USB,
        .baud = 115200,
        .index = 0};
-   queue_init();
-   initWrapper(&config);
-   C3_init();
+   initWrapper(&config);   
 
    BaseType_t res;
 

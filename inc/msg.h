@@ -20,6 +20,7 @@
 #include "queue.h"
 #include "semphr.h"
 #include "appConfig.h"
+#include "wrapper.h"
 /*=====[C++ - begin]=========================================================*/
 
 #ifdef __cplusplus
@@ -61,7 +62,7 @@ extern "C"
 
     /*=====[Prototypes (declarations) of public functions]=======================*/
 
-    void queue_init(void);
+    void queue_init(config_t *config);
 
     /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 

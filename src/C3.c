@@ -29,40 +29,35 @@ typedef enum
     UNDER
 } flagType_t;
 
-extern msg_t msg[UARTS_TO_USE];
-
 errorType_t digestor(queueRecievedFrame_t dato);
 
 void C3_task(void *param);
 
-void C3_init(void)
+void C3_init(config_t *config)
 {
     BaseType_t res;
 
-    for (uint32_t i = 0; i < UARTS_TO_USE; ++i)
-    {
-        // Create a task in freeRTOS with dynamic memory
-        res = xTaskCreate(
-            C3_task,                      // Function that implements the task.
-            (const char *)"C3_task",      // Text name for the task.
-            configMINIMAL_STACK_SIZE * 2, // Stack size in words, not bytes.
-            (void *)i,                    // Parameter passed into the task.
-            tskIDLE_PRIORITY + 2,         // Priority at which the task is created.
-            0                             // Pointer to the task created in the system
-        );
-        configASSERT(res == pdPASS);
-    }
+    // Create a task in freeRTOS with dynamic memory
+    res = xTaskCreate(
+        C3_task,                      // Function that implements the task.
+        (const char *)"C3_task",      // Text name for the task.
+        configMINIMAL_STACK_SIZE * 2, // Stack size in words, not bytes.
+        (void *)config,               // Parameter passed into the task.
+        tskIDLE_PRIORITY + 2,         // Priority at which the task is created.
+        0                             // Pointer to the task created in the system
+    );
+    configASSERT(res == pdPASS);
 }
 
 void C3_task(void *param)
 {
-    uint32_t index = (uint32_t)param;
+    config_t *config = (config_t *) param;
     queueRecievedFrame_t datosC2C3, datosC3C2;
     errorType_t errorType = NO_ERROR;
 
     while (TRUE)
     {
-        xQueueReceive(msg[index].queueC2C3, &datosC2C3, portMAX_DELAY); // Esperamos el caracter
+        xQueueReceive(config->queueC2C3, &datosC2C3, portMAX_DELAY); // Esperamos el caracter
 
         datosC3C2.ptr = datosC2C3.ptr;
         errorType = digestor(datosC2C3);
@@ -140,21 +135,21 @@ void C3_task(void *param)
                 }
             }
             // Envio a C2 via queueC3C2
-            xQueueSend(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);
+            xQueueSend(config->queueC3C2, &datosC3C2, portMAX_DELAY);
             break;
         }
         case ERROR_INVALID_DATA:
         {
             datosC3C2.length = (OFFSET_ID + COM_DATA_ERROR);
             memcpy(datosC3C2.ptr + OFFSET_ID, "E00", COM_DATA_ERROR);
-            xQueueSend(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);
+            xQueueSend(config->queueC3C2, &datosC3C2, portMAX_DELAY);
             break;
         }
         case ERROR_INVALID_OPCODE:
         {
             datosC3C2.length = (OFFSET_ID + COM_DATA_ERROR);
             memcpy(datosC3C2.ptr + OFFSET_ID, "E01", COM_DATA_ERROR);
-            xQueueSend(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);
+            xQueueSend(config->queueC3C2, &datosC3C2, portMAX_DELAY);
             break;
         }
         case ERROR_SYSTEM:

@@ -26,7 +26,6 @@
 #include "crc8.h"
 #include "C2_ISR.h"
 
-extern msg_t msg[UARTS_TO_USE];
 extern QMPool Pool_memoria;
 extern uint8_t *pDataToSend;
 extern t_UART_config uart_configs[];
@@ -38,8 +37,6 @@ void C2_task_out(void *param);
 
 void C2_init(config_t *config)
 {
-    static uint32_t index = 0;
-    config->index = index;
     BaseType_t res;
     // Create a task in freeRTOS with dynamic memory
     res = xTaskCreate(
@@ -62,7 +59,6 @@ void C2_init(config_t *config)
         0                             // Pointer to the task created in the system
     );
     configASSERT(res == pdPASS);
-    ++index;
 }
 
 void C2_task_in(void *param)
@@ -76,9 +72,9 @@ void C2_task_in(void *param)
         datosC2C3.ptr = QMPool_get(&Pool_memoria, 0); //pido un bloque del pool
         configASSERT(datosC2C3.ptr != NULL);          //<-- Gestion de errores
 
-        xQueueReceive(msg[config->index].queueISRC2, datosC2C3.ptr, portMAX_DELAY); // Esperamos el frame
+        xQueueReceive(config->queueISRC2, datosC2C3.ptr, portMAX_DELAY); // Esperamos el frame
         datosC2C3.length = (uint8_t)datosC2C3.ptr[FRAME_MAX_LENGTH];
-        xQueueSend(msg[config->index].queueC2C3, &datosC2C3, portMAX_DELAY); // Manda a C3 a procesar
+        xQueueSend(config->queueC2C3, &datosC2C3, portMAX_DELAY); // Manda a C3 a procesar
     }
 }
 
@@ -91,7 +87,7 @@ void C2_task_out(void *param)
     crc_eof[3] = '\0'; // TODO Borrar.
     while (TRUE)
     {
-        xQueueReceive(msg[config->index].queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
+        xQueueReceive(config->queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
         // calculo de CRC a enviar
         uint8_t crcCalc = crc8_calc(crc8_init(), datosC3C2.ptr + OFFSET_SOF, datosC3C2.length - OFFSET_SOF);
         int2ascii(crc_eof, crcCalc);
@@ -107,7 +103,7 @@ void C2_task_out(void *param)
         {
             uartSetPendingInterrupt(config->uart);
             // Espera semaforo para terminar de enviar el mensaje por ISR
-            if (xSemaphoreTake(msg[config->index].semphrC2ISR, 0) == pdTRUE)
+            if (xSemaphoreTake(config->semphrC2ISR, 0) == pdTRUE)
             {
                 pDataToSend++;
             }

@@ -1,19 +1,17 @@
 #include "msg.h"
 #include "appConfig.h"
-msg_t msg[UARTS_TO_USE];
-void queue_init(void)
+
+void queue_init(config_t *config)
 {
-    for (uint32_t i = 0; i < UARTS_TO_USE; ++i)
-    {
-        // Crear cola para compartir los frames entre capas
-        msg[i].queueISRC2 = xQueueCreate(RECIEVED_FRAME_QUEUE_SIZE, (PACKET_SIZE) * sizeof(uint8_t));
-        configASSERT(msg[i].queueISRC2 != NULL);
-        msg[i].queueC2C3 = xQueueCreate(PROCESS_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
-        configASSERT(msg[i].queueC2C3 != NULL);
-        msg[i].queueC3C2 = xQueueCreate(TRANSMIT_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
-        configASSERT(msg[i].queueC3C2 != NULL);
-        // Creo semaforo para enviar el msj por ISR
-        msg[i].semphrC2ISR = xSemaphoreCreateBinary();
-        configASSERT(msg[i].semphrC2ISR != NULL);
-    }
+
+    // Crear cola para compartir los frames entre capas
+    config->queueISRC2 = xQueueCreate(RECIEVED_FRAME_QUEUE_SIZE, (PACKET_SIZE) * sizeof(uint8_t));
+    configASSERT(config->queueISRC2 != NULL);
+    config->queueC2C3 = xQueueCreate(PROCESS_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
+    configASSERT(config->queueC2C3 != NULL);
+    config->queueC3C2 = xQueueCreate(TRANSMIT_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
+    configASSERT(config->queueC3C2 != NULL);
+    // Creo semaforo para enviar el msj por ISR
+    config->semphrC2ISR = xSemaphoreCreateBinary();
+    configASSERT(config->semphrC2ISR != NULL);
 }

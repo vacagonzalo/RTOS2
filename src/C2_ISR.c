@@ -63,8 +63,6 @@ uint8_t ascii2hex(uint8_t *p);
 	   UART_232  = 5, // Hardware UART3 via 232_RX and 232_tx pins on header P1
 */
 
-extern msg_t msg[UARTS_TO_USE];
-
 uint8_t *pDataToSend;
 
 void ISR_init(config_t *config)
@@ -130,7 +128,7 @@ void onRx(void *param)
 					ISR_FSM[config->index].pktRecieved[ISR_FSM[config->index].countChars] = c;
 					ISR_FSM[config->index].countChars++;
 					ISR_FSM[config->index].pktRecieved[FRAME_MAX_LENGTH] = ISR_FSM[config->index].countChars;
-					xQueueSendFromISR(msg[config->index].queueISRC2, ISR_FSM[config->index].pktRecieved, &xHigherPriorityTaskWoken);
+					xQueueSendFromISR(config->queueISRC2, ISR_FSM[config->index].pktRecieved, &xHigherPriorityTaskWoken);
 				}
 			}
 		}
@@ -139,7 +137,7 @@ void onRx(void *param)
 			ISR_FSM[config->index].state = ISR_IDLE;
 			ISR_FSM[config->index].pktRecieved[ISR_FSM[config->index].countChars] = '_';
 			ISR_FSM[config->index].pktRecieved[FRAME_MAX_LENGTH] = ISR_FSM[config->index].countChars + 4;
-			xQueueSendFromISR(msg[config->index].queueISRC2, ISR_FSM[config->index].pktRecieved, &xHigherPriorityTaskWoken);
+			xQueueSendFromISR(config->queueISRC2, ISR_FSM[config->index].pktRecieved, &xHigherPriorityTaskWoken);
 		}
 		break;
 	default:
@@ -163,7 +161,7 @@ void uartUsbSendCallback(void *param)
 		lastCharSended = (uint32_t)pDataToSend;
 	}
 	uartClearPendingInterrupt(config->uart);
-	xSemaphoreGiveFromISR(msg[config->index].semphrC2ISR, &xHigherPriorityTaskWoken);
+	xSemaphoreGiveFromISR(config->semphrC2ISR, &xHigherPriorityTaskWoken);
 }
 
 void onTime(TimerHandle_t xTimer)
