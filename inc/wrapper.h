@@ -8,6 +8,7 @@
 #include "queue.h"
 #include "semphr.h"
 #include "appConfig.h"
+#include "qmpool.h"
 
 typedef struct
 {
@@ -18,6 +19,7 @@ typedef struct
     QueueHandle_t queueC2C3;
     QueueHandle_t queueC3C2;
     SemaphoreHandle_t semphrC2ISR;
+    QMPool Pool_memoria; //memory pool (contienen la informacion que necesita la biblioteca qmpool.h)
 } config_t;
 
 void initWrapper(config_t *config);

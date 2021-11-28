@@ -28,49 +28,42 @@
 
 /*=====[Definitions of public global variables]==============================*/
 
-QMPool Pool_memoria; //memory pool (contienen la informacion que necesita la biblioteca qmpool.h)
-
 /*=====[Definitions of private global variables]=============================*/
 
 /*=====[Main function, program entry point after power on or reset]==========*/
 
 int main(void)
 {
-   boardInit();
+    boardInit();
 
-   //	Reservo memoria para el memory pool
-   void *Pool_puntero = pvPortMalloc(POOL_SIZE * sizeof(char));
-   configASSERT(Pool_puntero != NULL);
-   //	Creo el pool de memoria que va a usarse para la transmision
-   QMPool_init(&Pool_memoria, Pool_puntero, POOL_SIZE * sizeof(uint8_t), PACKET_SIZE); //Tamanio del segmento de memoria reservado
-   static config_t config = {
-       .uart = UART_USB,
-       .baud = 115200,
-       .index = 0};
-   initWrapper(&config);   
+    static config_t config = {
+        .uart = UART_USB,
+        .baud = 115200,
+        .index = 0};
+    initWrapper(&config);
 
-   BaseType_t res;
+    BaseType_t res;
 
-   // Create a task in freeRTOS with dynamic memory
-   res = xTaskCreate(
-       myTask,                       // Function that implements the task.
-       (const char *)"myTask",       // Text name for the task.
-       configMINIMAL_STACK_SIZE * 1, // Stack size in words, not bytes.
-       0,                            // Parameter passed into the task.
-       tskIDLE_PRIORITY + 1,         // Priority at which the task is created.
-       0                             // Pointer to the task created in the system
-   );
-   configASSERT(res == pdPASS);
+    // Create a task in freeRTOS with dynamic memory
+    res = xTaskCreate(
+        myTask,                       // Function that implements the task.
+        (const char *)"myTask",       // Text name for the task.
+        configMINIMAL_STACK_SIZE * 1, // Stack size in words, not bytes.
+        0,                            // Parameter passed into the task.
+        tskIDLE_PRIORITY + 1,         // Priority at which the task is created.
+        0                             // Pointer to the task created in the system
+    );
+    configASSERT(res == pdPASS);
 
-   printf("Bienvenido al mundo loco de FreeRTOS.\r\n");
+    printf("Bienvenido al mundo loco de FreeRTOS.\r\n");
 
-   vTaskStartScheduler(); // Initialize scheduler
+    vTaskStartScheduler(); // Initialize scheduler
 
-   while (true)
-      ; // If reach heare it means that the scheduler could not start
+    while (true)
+        ; // If reach heare it means that the scheduler could not start
 
-   // YOU NEVER REACH HERE, because this program runs directly or on a
-   // microcontroller and is not called by any Operating System, as in the
-   // case of a PC program.
-   return 0;
+    // YOU NEVER REACH HERE, because this program runs directly or on a
+    // microcontroller and is not called by any Operating System, as in the
+    // case of a PC program.
+    return 0;
 }

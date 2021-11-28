@@ -26,7 +26,6 @@
 #include "crc8.h"
 #include "C2_ISR.h"
 
-extern QMPool Pool_memoria;
 extern uint8_t *pDataToSend;
 extern t_UART_config uart_configs[];
 
@@ -69,7 +68,7 @@ void C2_task_in(void *param)
     while (TRUE)
     {
         // Pedido de memoria al Pool
-        datosC2C3.ptr = QMPool_get(&Pool_memoria, 0); //pido un bloque del pool
+        datosC2C3.ptr = QMPool_get(&(config->Pool_memoria), 0); //pido un bloque del pool
         configASSERT(datosC2C3.ptr != NULL);          //<-- Gestion de errores
 
         xQueueReceive(config->queueISRC2, datosC2C3.ptr, portMAX_DELAY); // Esperamos el frame
@@ -111,7 +110,7 @@ void C2_task_out(void *param)
         uartCallbackClr(config->uart, UART_TRANSMITER_FREE);
 
         // Libero el bloque de memoria que ya fue trasmitido
-        QMPool_put(&Pool_memoria, datosC3C2.ptr);
+        QMPool_put(&(config->Pool_memoria), datosC3C2.ptr);
         datosC3C2.ptr = NULL;
     }
 }
