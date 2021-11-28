@@ -8,9 +8,9 @@ void queue_init(void)
         // Crear cola para compartir los frames entre capas
         msg[i].queueISRC2 = xQueueCreate(RECIEVED_FRAME_QUEUE_SIZE, (PACKET_SIZE) * sizeof(uint8_t));
         configASSERT(msg[i].queueISRC2 != NULL);
-        msg[i].queueC2C3 = xQueueCreate(RECIEVED_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
+        msg[i].queueC2C3 = xQueueCreate(PROCESS_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
         configASSERT(msg[i].queueC2C3 != NULL);
-        msg[i].queueC3C2 = xQueueCreate(RECIEVED_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
+        msg[i].queueC3C2 = xQueueCreate(PROCESS_FRAME_QUEUE_SIZE, sizeof(queueRecievedFrame_t));
         configASSERT(msg[i].queueC3C2 != NULL);
         // Creo semaforo para enviar el msj por ISR
         msg[i].semphrC2ISR = xSemaphoreCreateBinary();

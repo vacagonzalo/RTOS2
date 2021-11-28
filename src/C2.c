@@ -69,34 +69,30 @@ void C2_init(void)
 void C2_task_in(void *param)
 {
     uint32_t index = (uint32_t)param;
-    queueRecievedFrame_t datosC2C3, datosISRC2;
+    queueRecievedFrame_t datosC2C3;
 
     while (TRUE)
     {
         // Pedido de memoria al Pool
-        datosISRC2.ptr = QMPool_get(&Pool_memoria, 0); //pido un bloque del pool
-        configASSERT(datosISRC2.ptr != NULL);          //<-- Gestion de errores
+        datosC2C3.ptr = QMPool_get(&Pool_memoria, 0); //pido un bloque del pool
+        configASSERT(datosC2C3.ptr != NULL);          //<-- Gestion de errores
 
-        xQueueReceive(msg[index].queueISRC2, datosISRC2.ptr, portMAX_DELAY); // Esperamos el frame
-        datosISRC2.length = (uint8_t)datosISRC2.ptr[FRAME_MAX_LENGTH];
-
-        // Parseo de C+Data y envio a C3 via queueC2C3
-        datosC2C3.length = datosISRC2.length;
-        datosC2C3.ptr = datosISRC2.ptr;
-        xQueueSend(msg[index].queueC2C3, &datosC2C3, portMAX_DELAY);
+        xQueueReceive(msg[index].queueISRC2, datosC2C3.ptr, portMAX_DELAY); // Esperamos el frame
+        datosC2C3.length = (uint8_t)datosC2C3.ptr[FRAME_MAX_LENGTH];
+        xQueueSend(msg[index].queueC2C3, &datosC2C3, portMAX_DELAY); // Manda a C3 a procesar
     }
 }
 
 void C2_task_out(void *param)
 {
     uint32_t index = (uint32_t)param;
-    queueRecievedFrame_t datosID, datosC3C2;
+    queueRecievedFrame_t datosC3C2;
     uint8_t crc_eof[FRAME_CRCEOF_LENGTH];
     crc_eof[2] = ')';
     crc_eof[3] = '\0'; // TODO Borrar.
     while (TRUE)
     {
-        xQueueReceive(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY);           // Esperamos el DATO
+        xQueueReceive(msg[index].queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
         // calculo de CRC a enviar
         uint8_t crcCalc = crc8_calc(crc8_init(), datosC3C2.ptr + OFFSET_SOF, datosC3C2.length - OFFSET_SOF);
         int2ascii(crc_eof, crcCalc);
