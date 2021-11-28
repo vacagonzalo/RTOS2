@@ -161,14 +161,14 @@ void uartUsbSendCallback(void *param)
 {
 	uint32_t index = (uint32_t)param;
 	static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-	static uint8_t lastCharSended;
-
-	if (!(lastCharSended == '(' && *pDataToSend == '('))
+	static uint32_t lastCharSended;
+	
+	if (lastCharSended != (uint32_t) pDataToSend)
 	{
 		while (uartTxReady(uart_configs[index].uartName) == FALSE)
 			;
 		uartTxWrite(uart_configs[index].uartName, (uint8_t)*pDataToSend);
-		lastCharSended = *pDataToSend;
+		lastCharSended = (uint32_t) pDataToSend;
 	}
 	uartClearPendingInterrupt(uart_configs[index].uartName);
 	xSemaphoreGiveFromISR(msg[index].semphrC2ISR, &xHigherPriorityTaskWoken);
