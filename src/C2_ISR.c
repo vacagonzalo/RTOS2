@@ -31,24 +31,8 @@
 #define FRAME_MINIMUN_VALID_LENGTH 9
 #define VALID_ID_CHAR (c >= 'A' && c <= 'F') || (c >= '0' && c <= '9')
 #define ID_LOCATION 5
-#define VALID_CRC_CHAR1 ((ISR_FSM[config->index].pktRecieved[ISR_FSM[config->index].countChars - 2] >= 'A' && ISR_FSM[config->index].pktRecieved[ISR_FSM[config->index].countChars - 2] <= 'F') || (ISR_FSM[config->index].pktRecieved[ISR_FSM[config->index].countChars - 2] >= '0' && ISR_FSM[config->index].pktRecieved[ISR_FSM[config->index].countChars - 2] <= '9'))
-#define VALID_CRC_CHAR2 ((ISR_FSM[config->index].pktRecieved[ISR_FSM[config->index].countChars - 1] >= 'A' && ISR_FSM[config->index].pktRecieved[ISR_FSM[config->index].countChars - 1] <= 'F') || (ISR_FSM[config->index].pktRecieved[ISR_FSM[config->index].countChars - 1] >= '0' && ISR_FSM[config->index].pktRecieved[ISR_FSM[config->index].countChars - 1] <= '9'))
-
-typedef enum
-{
-	ISR_IDLE,
-	ISR_ACQUIRING
-} ISR_states_t;
-
-typedef struct
-{
-	ISR_states_t state;
-	uint8_t countChars;
-	uint8_t pktRecieved[FRAME_MAX_LENGTH + 1];
-	TimerHandle_t timeOut;
-} ISR_FSM_t;
-
-ISR_FSM_t ISR_FSM[UARTS_TO_USE];
+#define VALID_CRC_CHAR1 ((config->fsm.pktRecieved[config->fsm.countChars - 2] >= 'A' && config->fsm.pktRecieved[config->fsm.countChars - 2] <= 'F') || (config->fsm.pktRecieved[config->fsm.countChars - 2] >= '0' && config->fsm.pktRecieved[config->fsm.countChars - 2] <= '9'))
+#define VALID_CRC_CHAR2 ((config->fsm.pktRecieved[config->fsm.countChars - 1] >= 'A' && config->fsm.pktRecieved[config->fsm.countChars - 1] <= 'F') || (config->fsm.pktRecieved[config->fsm.countChars - 1] >= '0' && config->fsm.pktRecieved[config->fsm.countChars - 1] <= '9'))
 
 void onRx(void *param);
 void uartUsbSendCallback(void *param);
@@ -71,9 +55,9 @@ void ISR_init(config_t *config)
 	uartCallbackSet(config->uart, UART_RECEIVE, onRx, (void *)config);
 	uartInterrupt(config->uart, true);
 
-	ISR_FSM[config->index].timeOut = xTimerCreate("timeOut", TIMEOUT_PERIOD_TICKS, pdFALSE, (void *)config->index, onTime);
-	configASSERT(ISR_FSM[config->index].timeOut);
-	ISR_FSM[config->index].state = ISR_IDLE;
+	config->fsm.timeOut = xTimerCreate("timeOut", TIMEOUT_PERIOD_TICKS, pdFALSE, (void *)config, onTime);
+	configASSERT(config->fsm.timeOut);
+	config->fsm.state = ISR_IDLE;
 }
 
 void onRx(void *param)
@@ -84,64 +68,64 @@ void onRx(void *param)
 	uint8_t c = uartRxRead(config->uart); // Selecciona la UART
 	// Reseteamos el timer
 
-	switch (ISR_FSM[config->index].state)
+	switch (config->fsm.state)
 	{
 	case ISR_IDLE:
 		if (FRAME_START)
 		{
-			ISR_FSM[config->index].state = ISR_ACQUIRING;
-			ISR_FSM[config->index].countChars = 0;
-			ISR_FSM[config->index].pktRecieved[ISR_FSM[config->index].countChars] = c;
-			ISR_FSM[config->index].countChars++;
-			xTimerResetFromISR(ISR_FSM[config->index].timeOut, &xHigherPriorityTaskWoken);
+			config->fsm.state = ISR_ACQUIRING;
+			config->fsm.countChars = 0;
+			config->fsm.pktRecieved[config->fsm.countChars] = c;
+			config->fsm.countChars++;
+			xTimerResetFromISR(config->fsm.timeOut, &xHigherPriorityTaskWoken);
 		}
 		break;
 	case ISR_ACQUIRING:
 		if (VALID_CHAR)
 		{
-			ISR_FSM[config->index].pktRecieved[ISR_FSM[config->index].countChars] = c;
-			ISR_FSM[config->index].countChars++;
-			if ((ISR_FSM[config->index].countChars == FRAME_MAX_LENGTH) ||
-				(!(VALID_ID_CHAR) && ISR_FSM[config->index].countChars < ID_LOCATION))
+			config->fsm.pktRecieved[config->fsm.countChars] = c;
+			config->fsm.countChars++;
+			if ((config->fsm.countChars == FRAME_MAX_LENGTH) ||
+				(!(VALID_ID_CHAR) && config->fsm.countChars < ID_LOCATION))
 			{
-				ISR_FSM[config->index].state = ISR_IDLE;
+				config->fsm.state = ISR_IDLE;
 			}
-			xTimerResetFromISR(ISR_FSM[config->index].timeOut, &xHigherPriorityTaskWoken);
+			xTimerResetFromISR(config->fsm.timeOut, &xHigherPriorityTaskWoken);
 		}
 		else if (FRAME_START)
 		{
-			ISR_FSM[config->index].countChars = 1;
-			xTimerResetFromISR(ISR_FSM[config->index].timeOut, &xHigherPriorityTaskWoken);
+			config->fsm.countChars = 1;
+			xTimerResetFromISR(config->fsm.timeOut, &xHigherPriorityTaskWoken);
 		}
 		else if (END_FRAME)
 		{
-			ISR_FSM[config->index].state = ISR_IDLE;
-			if ((ISR_FSM[config->index].countChars > FRAME_MINIMUN_VALID_LENGTH - 1) &&
+			config->fsm.state = ISR_IDLE;
+			if ((config->fsm.countChars > FRAME_MINIMUN_VALID_LENGTH - 1) &&
 				(VALID_CRC_CHAR1) && (VALID_CRC_CHAR2))
 			{
 				// CRC Check
-				uint8_t crcCalc = crc8_calc(crc8_init(), ISR_FSM[config->index].pktRecieved + OFFSET_SOF, ISR_FSM[config->index].countChars - OFFSET_CRC - OFFSET_SOF);
-				uint8_t crcRecieved = ascii2hex(ISR_FSM[config->index].pktRecieved + ISR_FSM[config->index].countChars - OFFSET_CRC);
+				uint8_t crcCalc = crc8_calc(crc8_init(), config->fsm.pktRecieved + OFFSET_SOF, config->fsm.countChars - OFFSET_CRC - OFFSET_SOF);
+				uint8_t crcRecieved = ascii2hex(config->fsm.pktRecieved + config->fsm.countChars - OFFSET_CRC);
 				if (crcCalc == crcRecieved)
 				{
 					// Mandar la cola de mensajes
-					ISR_FSM[config->index].pktRecieved[ISR_FSM[config->index].countChars] = c;
-					ISR_FSM[config->index].countChars++;
-					ISR_FSM[config->index].pktRecieved[FRAME_MAX_LENGTH] = ISR_FSM[config->index].countChars;
-					xQueueSendFromISR(config->queueISRC2, ISR_FSM[config->index].pktRecieved, &xHigherPriorityTaskWoken);
+					config->fsm.pktRecieved[config->fsm.countChars] = c;
+					config->fsm.countChars++;
+					config->fsm.pktRecieved[FRAME_MAX_LENGTH] = config->fsm.countChars;
+					xQueueSendFromISR(config->queueISRC2, config->fsm.pktRecieved, &xHigherPriorityTaskWoken);
 				}
 			}
 		}
 		else
 		{
-			ISR_FSM[config->index].state = ISR_IDLE;
-			ISR_FSM[config->index].pktRecieved[ISR_FSM[config->index].countChars] = '_';
-			ISR_FSM[config->index].pktRecieved[FRAME_MAX_LENGTH] = ISR_FSM[config->index].countChars + 4;
-			xQueueSendFromISR(config->queueISRC2, ISR_FSM[config->index].pktRecieved, &xHigherPriorityTaskWoken);
+			config->fsm.state = ISR_IDLE;
+			config->fsm.pktRecieved[config->fsm.countChars] = '_';
+			config->fsm.pktRecieved[FRAME_MAX_LENGTH] = config->fsm.countChars + 4;
+			xQueueSendFromISR(config->queueISRC2, config->fsm.pktRecieved, &xHigherPriorityTaskWoken);
 		}
 		break;
 	default:
-		ISR_FSM[config->index].state = ISR_IDLE;
+		config->fsm.state = ISR_IDLE;
 		break;
 	}
 }
@@ -166,8 +150,8 @@ void uartUsbSendCallback(void *param)
 
 void onTime(TimerHandle_t xTimer)
 {
-	uint32_t index = (uint32_t)pvTimerGetTimerID(xTimer);
-	ISR_FSM[index].state = ISR_IDLE;
+	config_t *config = (config_t *)pvTimerGetTimerID(xTimer);
+	config->fsm.state = ISR_IDLE;
 }
 
 uint8_t ascii2hex(uint8_t *p)

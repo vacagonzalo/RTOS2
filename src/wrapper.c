@@ -14,6 +14,6 @@ void initWrapper(config_t *config)
     void *Pool_puntero = pvPortMalloc(POOL_SIZE * sizeof(char));
     configASSERT(Pool_puntero != NULL);
     //	Creo el pool de memoria que va a usarse para la transmision
-    QMPool_init(&(config->Pool_memoria), Pool_puntero, POOL_SIZE * sizeof(uint8_t), PACKET_SIZE); //Tamanio del segmento de memoria reservado
+    QMPool_init(&(config->poolMem), Pool_puntero, POOL_SIZE * sizeof(uint8_t), PACKET_SIZE); //Tamanio del segmento de memoria reservado
     
 }
