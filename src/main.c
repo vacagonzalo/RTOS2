@@ -38,6 +38,12 @@ int main(void)
         .index = 0};
     initWrapper(&config);
 
+    /*static config_t config2 = {
+        .uart = UART_GPIO,
+        .baud = 115200,
+        .index = 1};
+    initWrapper(&config2);*/
+
     BaseType_t res;
 
     // Create a task in freeRTOS with dynamic memory
