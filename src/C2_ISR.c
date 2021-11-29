@@ -7,9 +7,6 @@
  * Date: 2021/10/30
  *===========================================================================*/
 
-#include "C2_ISR.h"
-#include "msg.h"
-#include "appConfig.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -22,6 +19,8 @@
 #include "queue.h"
 #include "timers.h"
 #include "crc8.h"
+#include "wrapper.h"
+#include "appConfig.h"
 
 #define RECIEVED_CHAR_QUEUE_SIZE 10
 #define FRAME_START (c == '(')

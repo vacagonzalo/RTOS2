@@ -7,9 +7,6 @@
  * Date: 2021/10/30
  *===========================================================================*/
 
-#include "C2.h"
-#include "msg.h"
-#include "appConfig.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -24,7 +21,8 @@
 #include "qmpool.h"
 #include "semphr.h"
 #include "crc8.h"
-#include "C2_ISR.h"
+#include "appConfig.h"
+#include "wrapper.h"
 
 extern uint8_t *pDataToSend;
 

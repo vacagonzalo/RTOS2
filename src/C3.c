@@ -7,9 +7,6 @@
  * Date: 2021/10/30
  *===========================================================================*/
 
-#include "C3.h"
-#include "msg.h"
-#include "appConfig.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -20,6 +17,8 @@
 #include "FreeRTOSConfig.h"
 #include "task.h"
 #include "queue.h"
+#include "wrapper.h"
+#include "appConfig.h"
 
 typedef enum
 {

@@ -23,7 +23,9 @@ extern "C"
 {
 #endif
 #include <inttypes.h>
-/*=====[Definition macros of public constants]===============================*/
+
+    /*=====[Definition macros of public constants]===============================*/
+
 #define FRAME_MAX_LENGTH 200
 #define DEFAULT_BAUD_RATE 115200
 #define UARTS_TO_USE 1
@@ -46,7 +48,9 @@ extern "C"
 #define MAX_NUMBER_OF_WORDS 15
 #define MAX_NUMBER_OF_LETTERS 10
 
-    /*=====[Public function-like macros]=========================================*/
+#define RECIEVED_FRAME_QUEUE_SIZE 5
+#define PROCESS_FRAME_QUEUE_SIZE 5
+#define TRANSMIT_FRAME_QUEUE_SIZE 5
 
     /*=====[Definitions of public data types]====================================*/
 
@@ -56,13 +60,7 @@ extern "C"
         uint32_t baudRate;
     } t_UART_config;
 
-    //typedef char *tMensaje; // String
-
     /*=====[Prototypes (declarations) of public functions]=======================*/
-
-    /*=====[Prototypes (declarations) of public interrupt functions]=============*/
-
-    /*=====[C++ - end]===========================================================*/
 
 #ifdef __cplusplus
 }

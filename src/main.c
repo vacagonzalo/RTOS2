@@ -10,18 +10,14 @@
 /*=====[Inclusions of function dependencies]=================================*/
 
 #include "main.h"
-
+#include "sapi.h"
 #include "FreeRTOS.h"
 #include "FreeRTOSConfig.h"
 #include "task.h"
-
-#include "sapi.h"
 #include "userTasks.h"
-#include "msg.h"
 #include "wrapper.h"
-#include "C3.h"
 #include "appConfig.h"
-#include "qmpool.h"
+
 /*=====[Definition macros of private constants]==============================*/
 
 /*=====[Definitions of extern global variables]==============================*/
