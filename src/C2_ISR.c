@@ -30,8 +30,8 @@
 #define FRAME_MINIMUN_VALID_LENGTH 9
 #define VALID_ID_CHAR (c >= 'A' && c <= 'F') || (c >= '0' && c <= '9')
 #define ID_LOCATION 5
-#define VALID_CRC_CHAR1 ((config->fsm.pktRecieved[config->fsm.countChars - 2] >= 'A' && config->fsm.pktRecieved[config->fsm.countChars - 2] <= 'F') || (config->fsm.pktRecieved[config->fsm.countChars - 2] >= '0' && config->fsm.pktRecieved[config->fsm.countChars - 2] <= '9'))
-#define VALID_CRC_CHAR2 ((config->fsm.pktRecieved[config->fsm.countChars - 1] >= 'A' && config->fsm.pktRecieved[config->fsm.countChars - 1] <= 'F') || (config->fsm.pktRecieved[config->fsm.countChars - 1] >= '0' && config->fsm.pktRecieved[config->fsm.countChars - 1] <= '9'))
+#define VALID_CRC_CHAR1 ((config->fsm.data.ptr[config->fsm.data.length - 2] >= 'A' && config->fsm.data.ptr[config->fsm.data.length - 2] <= 'F') || (config->fsm.data.ptr[config->fsm.data.length - 2] >= '0' && config->fsm.data.ptr[config->fsm.data.length - 2] <= '9'))
+#define VALID_CRC_CHAR2 ((config->fsm.data.ptr[config->fsm.data.length - 1] >= 'A' && config->fsm.data.ptr[config->fsm.data.length - 1] <= 'F') || (config->fsm.data.ptr[config->fsm.data.length - 1] >= '0' && config->fsm.data.ptr[config->fsm.data.length - 1] <= '9'))
 
 void onRx(void *param);
 void uartUsbSendCallback(void *param);
@@ -61,7 +61,7 @@ void ISR_init(config_t *config)
 
 void onRx(void *param)
 {
-	config_t *config = (config_t *)param;					  // Casteo del index
+	config_t *config = (config_t *)param;				  // Casteo del index
 	static BaseType_t xHigherPriorityTaskWoken = pdFALSE; // Comenzamos definiendo la variable
 
 	uint8_t c = uartRxRead(config->uart); // Selecciona la UART
@@ -73,58 +73,78 @@ void onRx(void *param)
 		if (FRAME_START)
 		{
 			config->fsm.state = ISR_ACQUIRING;
-			config->fsm.countChars = 0;
-			config->fsm.pktRecieved[config->fsm.countChars] = c;
-			config->fsm.countChars++;
+			// Pedido de memoria al Pool
+			config->fsm.data.ptr = QMPool_getFromISR(&(config->poolMem), 0); //pido un bloque del pool
+			configASSERT(config->fsm.data.ptr);						  //<-- Gestion de errores
+			config->fsm.data.length = 0;
+			config->fsm.data.ptr[config->fsm.data.length] = c;
+			config->fsm.data.length++;
 			xTimerResetFromISR(config->fsm.timeOut, &xHigherPriorityTaskWoken);
 		}
 		break;
 	case ISR_ACQUIRING:
 		if (VALID_CHAR)
 		{
-			config->fsm.pktRecieved[config->fsm.countChars] = c;
-			config->fsm.countChars++;
-			if ((config->fsm.countChars == FRAME_MAX_LENGTH) ||
-				(!(VALID_ID_CHAR) && config->fsm.countChars < ID_LOCATION))
+			config->fsm.data.ptr[config->fsm.data.length] = c;
+			config->fsm.data.length++;
+			if ((config->fsm.data.length == FRAME_MAX_LENGTH) ||
+				(!(VALID_ID_CHAR) && config->fsm.data.length < ID_LOCATION))
 			{
 				config->fsm.state = ISR_IDLE;
+				// Libero el bloque de memoria que ya fue trasmitido
+				QMPool_putFromISR(&(config->poolMem), config->fsm.data.ptr);
+				config->fsm.data.ptr = NULL;
 			}
 			xTimerResetFromISR(config->fsm.timeOut, &xHigherPriorityTaskWoken);
 		}
 		else if (FRAME_START)
 		{
-			config->fsm.countChars = 1;
+			config->fsm.data.length = 1;
 			xTimerResetFromISR(config->fsm.timeOut, &xHigherPriorityTaskWoken);
 		}
 		else if (END_FRAME)
 		{
 			config->fsm.state = ISR_IDLE;
-			if ((config->fsm.countChars > FRAME_MINIMUN_VALID_LENGTH - 1) &&
+			if ((config->fsm.data.length > FRAME_MINIMUN_VALID_LENGTH - 1) &&
 				(VALID_CRC_CHAR1) && (VALID_CRC_CHAR2))
 			{
 				// CRC Check
-				uint8_t crcCalc = crc8_calc(crc8_init(), config->fsm.pktRecieved + OFFSET_SOF, config->fsm.countChars - OFFSET_CRC - OFFSET_SOF);
-				uint8_t crcRecieved = ascii2hex(config->fsm.pktRecieved + config->fsm.countChars - OFFSET_CRC);
+				uint8_t crcCalc = crc8_calc(crc8_init(), config->fsm.data.ptr + OFFSET_SOF, config->fsm.data.length - OFFSET_CRC - OFFSET_SOF);
+				uint8_t crcRecieved = ascii2hex(config->fsm.data.ptr + config->fsm.data.length - OFFSET_CRC);
 				if (crcCalc == crcRecieved)
 				{
 					// Mandar la cola de mensajes
-					config->fsm.pktRecieved[config->fsm.countChars] = c;
-					config->fsm.countChars++;
-					config->fsm.pktRecieved[FRAME_MAX_LENGTH] = config->fsm.countChars;
-					xQueueSendFromISR(config->queueISRC2, config->fsm.pktRecieved, &xHigherPriorityTaskWoken);
+					config->fsm.data.ptr[config->fsm.data.length] = c;
+					config->fsm.data.length++;
+					xQueueSendFromISR(config->queueISRC3, &(config->fsm.data), &xHigherPriorityTaskWoken);
 				}
+				else
+				{
+					// Libero el bloque de memoria que ya fue trasmitido
+					QMPool_putFromISR(&(config->poolMem), config->fsm.data.ptr);
+					config->fsm.data.ptr = NULL;
+				}
+			}
+			else
+			{
+				// Libero el bloque de memoria que ya fue trasmitido
+				QMPool_putFromISR(&(config->poolMem), config->fsm.data.ptr);
+				config->fsm.data.ptr = NULL;
 			}
 		}
 		else
 		{
 			config->fsm.state = ISR_IDLE;
-			config->fsm.pktRecieved[config->fsm.countChars] = '_';
-			config->fsm.pktRecieved[FRAME_MAX_LENGTH] = config->fsm.countChars + 4;
-			xQueueSendFromISR(config->queueISRC2, config->fsm.pktRecieved, &xHigherPriorityTaskWoken);
+			config->fsm.data.ptr[config->fsm.data.length] = '_';
+			config->fsm.data.length = config->fsm.data.length + 4;
+			xQueueSendFromISR(config->queueISRC3, &(config->fsm.data), &xHigherPriorityTaskWoken);
 		}
 		break;
 	default:
 		config->fsm.state = ISR_IDLE;
+		// Libero el bloque de memoria que ya fue trasmitido
+		QMPool_putFromISR(&(config->poolMem), config->fsm.data.ptr);
+		config->fsm.data.ptr = NULL;
 		break;
 	}
 }

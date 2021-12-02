@@ -51,21 +51,21 @@ void C3_init(config_t *config)
 void C3_task(void *param)
 {
     config_t *config = (config_t *) param;
-    queueRecievedFrame_t datosC2C3, datosC3C2;
+    queueRecievedFrame_t datosISRC3, datosC3C2;
     errorType_t errorType = NO_ERROR;
 
     while (TRUE)
     {
-        xQueueReceive(config->queueC2C3, &datosC2C3, portMAX_DELAY); // Esperamos el caracter
+        xQueueReceive(config->queueISRC3, &datosISRC3, portMAX_DELAY); // Esperamos el caracter
 
-        datosC3C2.ptr = datosC2C3.ptr;
-        errorType = digestor(datosC2C3);
+        datosC3C2.ptr = datosISRC3.ptr;
+        errorType = digestor(datosISRC3);
 
         switch (errorType)
         {
         case NO_ERROR:
         {
-            datosC3C2.length = datosC2C3.length - DISCART_FRAME;
+            datosC3C2.length = datosISRC3.length - DISCART_FRAME;
             // Pasar a Snake es lo mismo desde pascal o camel!
             if (datosC3C2.ptr[OFFSET_ID] == 'S')
             {

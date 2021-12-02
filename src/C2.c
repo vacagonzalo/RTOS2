@@ -36,17 +36,6 @@ void C2_init(config_t *config)
     BaseType_t res;
     // Create a task in freeRTOS with dynamic memory
     res = xTaskCreate(
-        C2_task_in,                   // Function that implements the task.
-        (const char *)"C2_task_in",   // Text name for the task.
-        configMINIMAL_STACK_SIZE * 2, // Stack size in words, not bytes.
-        (void *)config,                    // Parameter passed into the task.
-        tskIDLE_PRIORITY + 3,         // Priority at which the task is created.
-        0                             // Pointer to the task created in the system
-    );
-    configASSERT(res == pdPASS);
-
-    // Create a task in freeRTOS with dynamic memory
-    res = xTaskCreate(
         C2_task_out,                  // Function that implements the task.
         (const char *)"C2_task_out",  // Text name for the task.
         configMINIMAL_STACK_SIZE * 2, // Stack size in words, not bytes.
@@ -55,23 +44,6 @@ void C2_init(config_t *config)
         0                             // Pointer to the task created in the system
     );
     configASSERT(res == pdPASS);
-}
-
-void C2_task_in(void *param)
-{
-    config_t *config = (config_t *) param;
-    queueRecievedFrame_t datosC2C3;
-
-    while (TRUE)
-    {
-        // Pedido de memoria al Pool
-        datosC2C3.ptr = QMPool_get(&(config->poolMem), 0); //pido un bloque del pool
-        configASSERT(datosC2C3.ptr != NULL);          //<-- Gestion de errores
-
-        xQueueReceive(config->queueISRC2, datosC2C3.ptr, portMAX_DELAY); // Esperamos el frame
-        datosC2C3.length = (uint8_t)datosC2C3.ptr[FRAME_MAX_LENGTH];
-        xQueueSend(config->queueC2C3, &datosC2C3, portMAX_DELAY); // Manda a C3 a procesar
-    }
 }
 
 void C2_task_out(void *param)
