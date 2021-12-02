@@ -162,10 +162,11 @@ void QMPool_init( QMPool * const me, void * const poolSto,
 
 /*! Obtains a memory block from a memory pool. */
 void *QMPool_get( QMPool * const me, unsigned short const margin );
+void *QMPool_getFromISR( QMPool * const me, unsigned short const margin );
 
 /*! Recycles a memory block back to a memory pool. */
 void QMPool_put( QMPool * const me, void *b );
-
+void QMPool_putFromISR( QMPool * const me, void *b );
 
 /*! Returns the minimum number of unused blocks in the given event pool. */
 unsigned short QMPool_getMin( QMPool * const me );

@@ -120,20 +120,12 @@ void int2ascii(uint8_t *p, uint8_t crc)
     lsn = crc - msn * 16;
 
     if (msn < 10)
-    {
         p[0] = msn + '0';
-    }
     else
-    {
         p[0] = msn - 10 + 'A';
-    }
 
     if (lsn < 10)
-    {
         p[1] = lsn + '0';
-    }
     else
-    {
         p[1] = lsn - 10 + 'A';
-    }
 }

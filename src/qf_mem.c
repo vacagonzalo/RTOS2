@@ -265,3 +265,73 @@ unsigned short QMPool_getMin( QMPool * const me )
     return min;
 }
 
+void QMPool_putFromISR( QMPool * const me, void *b )
+{
+
+    UBaseType_t uxSavedInterruptStatus;
+    /** @pre # free blocks cannot exceed the total # blocks and
+    * the block pointer must be from this pool.
+    */
+
+    uxSavedInterruptStatus = taskENTER_CRITICAL_FROM_ISR();
+
+    ( ( QFreeBlock * )b )->next = ( QFreeBlock * )me->free_head; /* link into list */
+    me->free_head = b;      /* set as new head of the free list */
+    ++me->nFree;            /* one more free block in this pool */
+    taskEXIT_CRITICAL_FROM_ISR( uxSavedInterruptStatus );
+}
+
+void *QMPool_getFromISR( QMPool * const me, unsigned short const margin )
+{
+    QFreeBlock *fb;
+    UBaseType_t uxSavedInterruptStatus;
+
+    uxSavedInterruptStatus = taskENTER_CRITICAL_FROM_ISR();
+
+    /* have more free blocks than the requested margin? */
+    if ( me->nFree > ( QMPoolCtr )margin )
+    {
+        void *fb_next;
+        fb = ( QFreeBlock * )me->free_head; /* get a free block */
+
+        fb_next = fb->next; /* put volatile to a temporary to avoid UB */
+
+        /* is the pool becoming empty? */
+        --me->nFree; /* one less free block */
+        if ( me->nFree == ( QMPoolCtr )0 )
+        {
+
+            me->nMin = ( QMPoolCtr )0; /* remember that the pool got empty */
+
+        }
+        else
+        {
+            /* pool is not empty, so the next free block must be in range
+            *
+            * NOTE: the next free block pointer can fall out of range
+            * when the client code writes past the memory block, thus
+            * corrupting the next block.
+            */
+
+            /* is the number of free blocks the new minimum so far? */
+            if ( me->nMin > me->nFree )
+            {
+                me->nMin = me->nFree; /* remember the new minimum */
+            }
+        }
+
+        me->free_head = fb_next; /* set the head to the next free block */
+
+    }
+    /* don't have enough free blocks at this point */
+    else
+    {
+
+        fb = ( QFreeBlock * )0;
+
+    }
+
+    taskEXIT_CRITICAL_FROM_ISR( uxSavedInterruptStatus );
+
+    return fb;  /* return the block or NULL pointer to the caller */
+}

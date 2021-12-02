@@ -61,7 +61,7 @@ void ISR_init(config_t *config)
 
 void onRx(void *param)
 {
-	config_t *config = (config_t *)param;					  // Casteo del index
+	config_t *config = (config_t *)param;				  // Casteo del index
 	static BaseType_t xHigherPriorityTaskWoken = pdFALSE; // Comenzamos definiendo la variable
 
 	uint8_t c = uartRxRead(config->uart); // Selecciona la UART
@@ -157,21 +157,14 @@ uint8_t ascii2hex(uint8_t *p)
 {
 	uint8_t result = 0;
 	if (p[0] >= 'A' && p[0] <= 'F')
-	{
 		result = (10 + p[0] - 'A') * 16;
-	}
 	else
-	{
 		result = (p[0] - '0') * 16;
-	}
 
 	if (p[1] >= 'A' && p[1] <= 'F')
-	{
 		result += 10 + p[1] - 'A';
-	}
 	else
-	{
 		result += p[1] - '0';
-	}
+
 	return result;
 }

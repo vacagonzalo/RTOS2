@@ -47,14 +47,6 @@ typedef struct
     uint8_t *ptr;
 } queueRecievedFrame_t;
 
-typedef struct
-{
-    QueueHandle_t queueISRC2;
-    QueueHandle_t queueC2C3;
-    QueueHandle_t queueC3C2;
-    SemaphoreHandle_t semphrC2ISR;
-} msg_t;
-
 typedef enum
 {
     ERROR_INVALID_DATA,

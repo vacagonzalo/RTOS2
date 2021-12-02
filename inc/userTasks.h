@@ -16,31 +16,8 @@
 #include "task.h"
 #include "sapi.h"
 
-/*=====[C++ - begin]=========================================================*/
+/*=====[Prototypes (declarations) of public functions]=======================*/
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
-    /*=====[Definition macros of public constants]===============================*/
-
-    /*=====[Public function-like macros]=========================================*/
-
-    /*=====[Definitions of public data types]====================================*/
-
-    /*=====[Prototypes (declarations) of public functions]=======================*/
-
-    void myTask(void *taskParmPtr); // Task declaration
-
-    /*=====[Prototypes (declarations) of public interrupt functions]=============*/
-
-    /*=====[C++ - end]===========================================================*/
-
-#ifdef __cplusplus
-}
-#endif
-
-/*=====[Avoid multiple inclusion - end]======================================*/
+void myTask(void *taskParmPtr); // Task declaration
 
 #endif /* __USER_TASKS_H__ */

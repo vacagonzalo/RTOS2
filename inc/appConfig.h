@@ -7,24 +7,13 @@
  * Date: 2021/10/30
  *===========================================================================*/
 
-/*=====[Avoid multiple inclusion - begin]====================================*/
-
 #ifndef __APPCONFIG_H__
 #define __APPCONFIG_H__
 
 #include "sapi.h"
-
-/*=====[Inclusions of public function dependencies]==========================*/
-
-/*=====[C++ - begin]=========================================================*/
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include <inttypes.h>
 
-    /*=====[Definition macros of public constants]===============================*/
+/*=====[Definition macros of public constants]===============================*/
 
 #define FRAME_MAX_LENGTH 200
 #define DEFAULT_BAUD_RATE 115200
@@ -51,21 +40,5 @@ extern "C"
 #define RECIEVED_FRAME_QUEUE_SIZE 5
 #define PROCESS_FRAME_QUEUE_SIZE 5
 #define TRANSMIT_FRAME_QUEUE_SIZE 5
-
-    /*=====[Definitions of public data types]====================================*/
-
-    typedef struct
-    {
-        uartMap_t uartName;
-        uint32_t baudRate;
-    } t_UART_config;
-
-    /*=====[Prototypes (declarations) of public functions]=======================*/
-
-#ifdef __cplusplus
-}
-#endif
-
-/*=====[Avoid multiple inclusion - end]======================================*/
 
 #endif /* __APPCONFIG_H__ */
