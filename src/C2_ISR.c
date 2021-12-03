@@ -39,7 +39,7 @@ void onTime(TimerHandle_t xTimer);
 uint8_t ascii2hex(uint8_t *p);
 
 /*
-   	   UART_GPIO = 0, // Hardware UART0 via GPIO1(TX), GPIO2(RX) pins on header P0
+	   UART_GPIO = 0, // Hardware UART0 via GPIO1(TX), GPIO2(RX) pins on header P0
 	   UART_485  = 1, // Hardware UART0 via RS_485 A, B and GND Borns
 	   UART_USB  = 3, // Hardware UART2 via USB DEBUG port
 	   UART_ENET = 4, // Hardware UART2 via ENET_RXD0(TX), ENET_CRS_DV(RX) pins on header P0
@@ -74,8 +74,8 @@ void onRx(void *param)
 		{
 			config->fsm.state = ISR_ACQUIRING;
 			// Pedido de memoria al Pool
-			config->fsm.data.ptr = QMPool_getFromISR(&(config->poolMem), 0); //pido un bloque del pool
-			configASSERT(config->fsm.data.ptr);						  //<-- Gestion de errores
+			config->fsm.data.ptr = QMPool_getFromISR(&(config->poolMem), 0); // pido un bloque del pool
+			configASSERT(config->fsm.data.ptr);								 //<-- Gestion de errores
 			config->fsm.data.length = 0;
 			config->fsm.data.ptr[config->fsm.data.length] = c;
 			config->fsm.data.length++;
@@ -93,7 +93,6 @@ void onRx(void *param)
 				config->fsm.state = ISR_IDLE;
 				// Libero el bloque de memoria que ya fue trasmitido
 				QMPool_putFromISR(&(config->poolMem), config->fsm.data.ptr);
-				config->fsm.data.ptr = NULL;
 			}
 			xTimerResetFromISR(config->fsm.timeOut, &xHigherPriorityTaskWoken);
 		}
@@ -120,16 +119,18 @@ void onRx(void *param)
 				}
 				else
 				{
-					// Libero el bloque de memoria que ya fue trasmitido
-					QMPool_putFromISR(&(config->poolMem), config->fsm.data.ptr);
-					config->fsm.data.ptr = NULL;
+					config->fsm.data.ptr[config->fsm.data.length] = c;
+					config->fsm.data.length++;
+					config->fsm.data.ptr[config->fsm.data.length - 4] = '_';
+					xQueueSendFromISR(config->queueISRC3, &(config->fsm.data), &xHigherPriorityTaskWoken);
 				}
 			}
 			else
 			{
-				// Libero el bloque de memoria que ya fue trasmitido
-				QMPool_putFromISR(&(config->poolMem), config->fsm.data.ptr);
-				config->fsm.data.ptr = NULL;
+				config->fsm.data.ptr[config->fsm.data.length] = c;
+				config->fsm.data.length++;
+				config->fsm.data.ptr[config->fsm.data.length - 4] = '_';
+				xQueueSendFromISR(config->queueISRC3, &(config->fsm.data), &xHigherPriorityTaskWoken);
 			}
 		}
 		else
@@ -144,7 +145,6 @@ void onRx(void *param)
 		config->fsm.state = ISR_IDLE;
 		// Libero el bloque de memoria que ya fue trasmitido
 		QMPool_putFromISR(&(config->poolMem), config->fsm.data.ptr);
-		config->fsm.data.ptr = NULL;
 		break;
 	}
 }
@@ -171,6 +171,7 @@ void onTime(TimerHandle_t xTimer)
 {
 	config_t *config = (config_t *)pvTimerGetTimerID(xTimer);
 	config->fsm.state = ISR_IDLE;
+	//QMPool_putFromISR(&(config->poolMem), config->fsm.data.ptr);
 }
 
 uint8_t ascii2hex(uint8_t *p)

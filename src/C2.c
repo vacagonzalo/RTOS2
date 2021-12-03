@@ -80,7 +80,6 @@ void C2_task_out(void *param)
 
         // Libero el bloque de memoria que ya fue trasmitido
         QMPool_put(&(config->poolMem), datosC3C2.ptr);
-        datosC3C2.ptr = NULL;
     }
 }
 

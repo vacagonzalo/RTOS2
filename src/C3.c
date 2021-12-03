@@ -50,7 +50,7 @@ void C3_init(config_t *config)
 
 void C3_task(void *param)
 {
-    config_t *config = (config_t *) param;
+    config_t *config = (config_t *)param;
     queueRecievedFrame_t datosISRC3, datosC3C2;
     errorType_t errorType = NO_ERROR;
 
@@ -67,15 +67,15 @@ void C3_task(void *param)
         {
             datosC3C2.length = datosISRC3.length - DISCART_FRAME;
             // Pasar a Snake es lo mismo desde pascal o camel!
-            if (datosC3C2.ptr[OFFSET_ID] == 'S')
+            if (datosC3C2.ptr[CMD_BYTE] == 'S')
             {
-                uint32_t i = COMAND_ID;
+                uint32_t i = FIRST_DATA_BYTE;
                 while (i < datosC3C2.length)
                 {
                     if (datosC3C2.ptr[i] >= 'A' && datosC3C2.ptr[i] <= 'Z')
                     {
                         datosC3C2.ptr[i] += 32;
-                        if (i != COMAND_ID)
+                        if (i != FIRST_DATA_BYTE)
                         {
                             datosC3C2.length++;
                             memmove(datosC3C2.ptr + i + 1, datosC3C2.ptr + i, datosC3C2.length - i);
@@ -86,9 +86,9 @@ void C3_task(void *param)
                     i++;
                 }
             }
-            else if (datosC3C2.ptr[OFFSET_ID] == 'P')
+            else if (datosC3C2.ptr[CMD_BYTE] == 'P')
             {
-                uint32_t i = COMAND_ID;
+                uint32_t i = FIRST_DATA_BYTE;
                 while (i < datosC3C2.length)
                 {
                     if (datosC3C2.ptr[i] == '_')
@@ -103,7 +103,7 @@ void C3_task(void *param)
                     }
                     else
                     {
-                        if (i == COMAND_ID)
+                        if (i == FIRST_DATA_BYTE)
                         {
                             datosC3C2.ptr[i] -= 32;
                         }
@@ -111,9 +111,9 @@ void C3_task(void *param)
                     i++;
                 }
             }
-            else if (datosC3C2.ptr[OFFSET_ID] == 'C')
+            else if (datosC3C2.ptr[CMD_BYTE] == 'C')
             {
-                uint32_t i = COMAND_ID;
+                uint32_t i = FIRST_DATA_BYTE;
                 while (i < datosC3C2.length)
                 {
                     if (datosC3C2.ptr[i] == '_')
@@ -124,7 +124,7 @@ void C3_task(void *param)
                     }
                     else if (datosC3C2.ptr[i] >= 'A' && datosC3C2.ptr[i] <= 'Z')
                     {
-                        if (i == COMAND_ID)
+                        if (i == FIRST_DATA_BYTE)
                         {
                             datosC3C2.ptr[i] += 32;
                         }
@@ -168,16 +168,22 @@ errorType_t digestor(queueRecievedFrame_t dato)
     }
 
     /* Chequear comando invalido */
-    if (dato.ptr[OFFSET_ID] != 'S' && dato.ptr[OFFSET_ID] != 'C' && dato.ptr[OFFSET_ID] != 'P')
+    if (dato.ptr[CMD_BYTE] != 'S' && dato.ptr[CMD_BYTE] != 'C' && dato.ptr[CMD_BYTE] != 'P')
     {
         return ERROR_INVALID_OPCODE;
+    }
+
+    // Cheque de dato invalido en el primer caracter
+    if ((dato.ptr[FIRST_DATA_BYTE] == '_') || (dato.ptr[FIRST_DATA_BYTE] == ' '))
+    {
+        return ERROR_INVALID_DATA;
     }
 
     flagType_t flagType = NONE;
     uint8_t words = 1;
     uint32_t contCharsMax = 0;
 
-    for (uint32_t i = COMAND_ID; i < dato.length - DISCART_FRAME; ++i)
+    for (uint32_t i = FIRST_DATA_BYTE; i < dato.length - DISCART_FRAME; ++i)
     {
         contCharsMax++;
         switch (flagType)

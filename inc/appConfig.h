@@ -26,18 +26,19 @@ extern "C"
 
     /*=====[Definition macros of public constants]===============================*/
 
-#define FRAME_MAX_LENGTH 200
+#define FRAME_MAX_LENGTH 175
 #define DEFAULT_BAUD_RATE 115200
 #define UARTS_TO_USE 1
 #define PACKET_SIZE FRAME_MAX_LENGTH + 1         // Tamanio del paquete
-#define POOL_TOTAL_BLOCKS 20                     // Cuantos paquetes
+#define POOL_TOTAL_BLOCKS 28                     // Cuantos paquetes
 #define POOL_SIZE POOL_TOTAL_BLOCKS *PACKET_SIZE //Tamanio total del pool
 #define TIMEOUT_PERIOD 4
 #define TIMEOUT_PERIOD_TICKS pdMS_TO_TICKS(TIMEOUT_PERIOD)
 
 #define OFFSET_CRC 2
 #define OFFSET_ID 5
-#define COMAND_ID 6
+#define CMD_BYTE 5
+#define FIRST_DATA_BYTE 6
 #define START_DATA 7
 #define DISCART_FRAME 3
 #define FRAME_ID_LENGTH 4
@@ -48,9 +49,8 @@ extern "C"
 #define MAX_NUMBER_OF_WORDS 15
 #define MAX_NUMBER_OF_LETTERS 10
 
-#define RECIEVED_FRAME_QUEUE_SIZE 5
-#define PROCESS_FRAME_QUEUE_SIZE 5
-#define TRANSMIT_FRAME_QUEUE_SIZE 5
+#define PROCESS_FRAME_QUEUE_SIZE (POOL_TOTAL_BLOCKS-3)/2
+#define TRANSMIT_FRAME_QUEUE_SIZE (POOL_TOTAL_BLOCKS-3)/2
 
     /*=====[Definitions of public data types]====================================*/
 
