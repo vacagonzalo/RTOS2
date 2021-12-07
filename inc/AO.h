@@ -71,6 +71,7 @@ typedef struct
 {
     TaskFunction_t 		taskName;
     QueueHandle_t 		activeObjectQueue;
+    QueueHandle_t       responseQueue;
     callBackActObj_t 	callbackFunc;
     bool_t 				itIsAlive;
 } activeObject_t;
@@ -124,6 +125,7 @@ void activeObjectTask( void* pvParameters );
  *===========================================================================*/
 
 void activeObjectEnqueue( activeObject_t* ao, queueRecievedFrame_t* value );
+void activeObjectEnqueueResponse( activeObject_t* ao, void* value );
 bool_t activeObjectOperationCreate( activeObject_t* ao, callBackActObj_t callback, TaskFunction_t taskForAO, QueueHandle_t response_queue );
 
 /*=====[Prototypes (declarations) of public interrupt functions]=============*/

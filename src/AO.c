@@ -169,3 +169,12 @@ bool_t activeObjectOperationCreate(activeObject_t *ao, callBackActObj_t callback
     /* creo oa padre */
     return activeObjectCreate(ao, callback, taskForAO);
 }
+
+void activeObjectEnqueueResponse( activeObject_t* ao, void* value )
+{
+    // Y lo enviamos a la cola.
+    if(xQueueSend( ao->responseQueue, value, 0 ) != pdPASS)
+    {
+		while(1);
+	}
+}

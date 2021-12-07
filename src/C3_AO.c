@@ -103,7 +103,7 @@ void C2ToOA_task(void *param)
                 if (snakeCase.itIsAlive == FALSE)
                 {
                     // Se crea el objeto activo, con el comando correspondiente y tarea asociada.
-                    activeObjectOperationCreate(&snakeCase, snake_packet, activeObjectTask, response_queue);
+                    activeObjectOperationCreate(&snakeCase, (callBackActObj_t) snake_packet, activeObjectTask, response_queue);
                 }
 
                 // Y enviamos el dato a la cola para procesar.
@@ -114,7 +114,7 @@ void C2ToOA_task(void *param)
                 if (camelCase.itIsAlive == FALSE)
                 {
                     // Se crea el objeto activo, con el comando correspondiente y tarea asociada.
-                    activeObjectOperationCreate(&camelCase, camel_packet, activeObjectTask, response_queue);
+                    activeObjectOperationCreate(&camelCase, (callBackActObj_t) camel_packet, activeObjectTask, response_queue);
                 }
 
                 // Y enviamos el dato a la cola para procesar.
@@ -125,7 +125,7 @@ void C2ToOA_task(void *param)
                 if (pascalCase.itIsAlive == FALSE)
                 {
                     // Se crea el objeto activo, con el comando correspondiente y tarea asociada.
-                    activeObjectOperationCreate(&pascalCase, pascal_packet, activeObjectTask, response_queue);
+                    activeObjectOperationCreate(&pascalCase, (callBackActObj_t) pascal_packet, activeObjectTask, response_queue);
                 }
 
                 // Y enviamos el dato a la cola para procesar.

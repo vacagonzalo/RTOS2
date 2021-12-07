@@ -28,7 +28,6 @@ extern uint8_t *pDataToSend;
 
 extern void uartUsbSendCallback(void *param);
 void int2ascii(uint8_t *p, uint8_t crc);
-void C2_task_in(void *param);
 void C2_task_out(void *param);
 
 void C2_init(config_t *config)
@@ -59,18 +58,18 @@ void C2_task_out(void *param)
         xQueueReceive(config->queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
 
         // calculo de CRC a enviar
-        uint8_t crcCalc = crc8_calc(crc8_init(), datosC3C2.ptr + OFFSET_SOF, datosC3C2.length - OFFSET_SOF);
+        uint8_t crcCalc = crc8_calc(crc8_init(), datosC3C2.ptr + OFFSET_SOF, datosC3C2.length - FRAME_CRCEOF_LENGTH - OFFSET_SOF);
         int2ascii(crc_eof, crcCalc);
 
         // CRC y EOF
         for (uint8_t i = 0; i < FRAME_CRCEOF_LENGTH; i++)
         {
-            datosC3C2.ptr[datosC3C2.length + i] = crc_eof[i];
+            datosC3C2.ptr[datosC3C2.length - FRAME_CRCEOF_LENGTH + i] = crc_eof[i];
         }
 
         pDataToSend = datosC3C2.ptr;
         uartCallbackSet(config->uart, UART_TRANSMITER_FREE, uartUsbSendCallback, (void *)config);
-        while (pDataToSend < (datosC3C2.ptr + datosC3C2.length + DISCART_FRAME))
+        while (pDataToSend < (datosC3C2.ptr + datosC3C2.length))
         {
             uartSetPendingInterrupt(config->uart);
             // Espera semaforo para terminar de enviar el mensaje por ISR
