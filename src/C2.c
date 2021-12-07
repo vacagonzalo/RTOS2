@@ -39,7 +39,7 @@ void C2_init(config_t *config)
         C2_task_out,                  // Function that implements the task.
         (const char *)"C2_task_out",  // Text name for the task.
         configMINIMAL_STACK_SIZE * 2, // Stack size in words, not bytes.
-        (void *)config,                    // Parameter passed into the task.
+        (void *)config,               // Parameter passed into the task.
         tskIDLE_PRIORITY + 4,         // Priority at which the task is created.
         0                             // Pointer to the task created in the system
     );
@@ -55,10 +55,13 @@ void C2_task_out(void *param)
     crc_eof[3] = '\0'; // TODO Borrar.
     while (TRUE)
     {
+
         xQueueReceive(config->queueC3C2, &datosC3C2, portMAX_DELAY); // Esperamos el DATO
+
         // calculo de CRC a enviar
         uint8_t crcCalc = crc8_calc(crc8_init(), datosC3C2.ptr + OFFSET_SOF, datosC3C2.length - OFFSET_SOF);
         int2ascii(crc_eof, crcCalc);
+
         // CRC y EOF
         for (uint8_t i = 0; i < FRAME_CRCEOF_LENGTH; i++)
         {

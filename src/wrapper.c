@@ -5,7 +5,11 @@ void initWrapper(config_t *config)
 {
     C2_init(config);
     ISR_init(config);
-    C3_init(config);
+    
+    bool_t state = C3_init(config);
+    // Gestion de errores
+    configASSERT(state);
+
     queue_init(config);
     //	Reservo memoria para el memory pool
     void *Pool_puntero = pvPortMalloc(POOL_SIZE * sizeof(char));

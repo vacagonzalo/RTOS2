@@ -38,14 +38,6 @@ void uartUsbSendCallback(void *param);
 void onTime(TimerHandle_t xTimer);
 uint8_t ascii2hex(uint8_t *p);
 
-/*
-	   UART_GPIO = 0, // Hardware UART0 via GPIO1(TX), GPIO2(RX) pins on header P0
-	   UART_485  = 1, // Hardware UART0 via RS_485 A, B and GND Borns
-	   UART_USB  = 3, // Hardware UART2 via USB DEBUG port
-	   UART_ENET = 4, // Hardware UART2 via ENET_RXD0(TX), ENET_CRS_DV(RX) pins on header P0
-	   UART_232  = 5, // Hardware UART3 via 232_RX and 232_tx pins on header P1
-*/
-
 uint8_t *pDataToSend;
 
 void ISR_init(config_t *config)
@@ -147,6 +139,13 @@ void onRx(void *param)
 		QMPool_putFromISR(&(config->poolMem), config->fsm.data.ptr);
 		break;
 	}
+}
+
+queueRecievedFrame_t protocol_wait_frame(config_t *config) //  == get(&objeto)
+{
+	queueRecievedFrame_t dato_rx;
+	xQueueReceive(config->queueISRC3, &dato_rx, portMAX_DELAY); //espero a que venga un bloque por la cola
+	return dato_rx;
 }
 
 // Envio a la PC desde la UART hasta NULL y deshabilito Callback

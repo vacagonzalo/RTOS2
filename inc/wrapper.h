@@ -58,7 +58,8 @@ typedef enum
 void queue_init(config_t *config);
 void ISR_init(config_t *config);
 void C2_init(config_t *config);
-void C3_init(config_t *config);
+queueRecievedFrame_t protocol_wait_frame(config_t *config);
+bool_t C3_init(config_t *config);
 void initWrapper(config_t *config);
 
 #endif /* __WRAPPER_H__ */
