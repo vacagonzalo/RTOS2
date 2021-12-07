@@ -20,117 +20,111 @@
 
 #include "wrapper.h"
 
-#define N_QUEUE_AO 		10
+#define N_QUEUE_AO 10
 
 /*=====[C++ - begin]=========================================================*/
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/*=====[Definition macros of public constants]===============================*/
+    /*===== Tipo de dato activeObjectEvent_t ======================================
+     *
+     * (+) Descripci�n: Este tipo de dato se emplear� para que el objeto activo
+     * reaccione a cada uno de los tipos de eventos disponibles. Consiste en:
+     *
+     * - UPPER_CASE: Para indicar la funci�n de mayusculizar.
+     * - LOWER_CASE: Para indicar la funci�n de minusculizar.
+     *
+     *===========================================================================*/
 
-/*=====[Public function-like macros]=========================================*/
+    /*===== Tipo de dato callBackActObj_t =========================================
+     *
+     * (+) Descripci�n: Tipo de dato para funciones callback que se ejecutar�n en
+     * el objeto activo.
+     *
+     *===========================================================================*/
 
-/*=====[Definitions of public data types]====================================*/
+    typedef void (*callBackActObj_t)(void *caller_ao, void *data);
 
-/*===== Tipo de dato activeObjectEvent_t ======================================
- *
- * (+) Descripci�n: Este tipo de dato se emplear� para que el objeto activo
- * reaccione a cada uno de los tipos de eventos disponibles. Consiste en:
- *
- * - UPPER_CASE: Para indicar la funci�n de mayusculizar.
- * - LOWER_CASE: Para indicar la funci�n de minusculizar.
- *
- *===========================================================================*/
+    /*===== Objeto activeObjectEvent_t ============================================
+     *
+     * (+) Descripci�n: Este tipo de dato se utiliza para almacenar todos los
+     * elementos asociados con el funcionamiento del objeto activo. Este tipo de
+     * variable esta conformado por:
+     *
+     * - TaskFunction_t: Una variable para poder crear la tarea asociada al OA.
+     * - QueueHandle_t: La cola del objeto activo en cuesti�n.
+     * - callBackActObj_t: Callback que se deber� ejecutar en la tarea del OA.
+     * - bool: Una variable de tipo booleana para saber si el objeto activo existe
+     * o no.
+     *
+     *===========================================================================*/
 
-/*===== Tipo de dato callBackActObj_t =========================================
- *
- * (+) Descripci�n: Tipo de dato para funciones callback que se ejecutar�n en
- * el objeto activo.
- *
- *===========================================================================*/
+    typedef struct
+    {
+        TaskFunction_t taskName;
+        QueueHandle_t activeObjectQueue;
+        QueueHandle_t responseQueue;
+        callBackActObj_t callbackFunc;
+        bool_t itIsAlive;
+    } activeObject_t;
 
-typedef void ( *callBackActObj_t )( void* caller_ao, void* data );
+    /*=====[Prototypes (declarations) of public functions]=======================*/
 
-/*===== Objeto activeObjectEvent_t ============================================
- *
- * (+) Descripci�n: Este tipo de dato se utiliza para almacenar todos los
- * elementos asociados con el funcionamiento del objeto activo. Este tipo de
- * variable esta conformado por:
- *
- * - TaskFunction_t: Una variable para poder crear la tarea asociada al OA.
- * - QueueHandle_t: La cola del objeto activo en cuesti�n.
- * - callBackActObj_t: Callback que se deber� ejecutar en la tarea del OA.
- * - bool: Una variable de tipo booleana para saber si el objeto activo existe
- * o no.
- *
- *===========================================================================*/
+    /*===== Funci�n activeObjectCreate()===========================================
+     *
+     * (+) Descripci�n: Esta funci�n se encarga de crear el objeto activo; es decir,
+     * crear su cola de procesamiento y su tarea asociada. Adicionalmente, se le
+     * asignar� una funci�n de callback que es la que se ejecutar� en la tarea.
+     *
+     * (+) Recibe: Un puntero del tipo "activeObject_t" al objeto activo y el
+     * evento del tipo "activeObjectEvent_t". Adicionalmente, se le debe pasar el
+     * nombre de la tarea asociada al objeto activo que se va a crear, del tipo
+     * "TaskFunction_t".
+     *
+     * (+) Devuelve: True o False dependiendo de si el objeto activo se cre�
+     * correctamente o no.
+     *
+     *===========================================================================*/
 
-typedef struct
-{
-    TaskFunction_t 		taskName;
-    QueueHandle_t 		activeObjectQueue;
-    QueueHandle_t       responseQueue;
-    callBackActObj_t 	callbackFunc;
-    bool_t 				itIsAlive;
-} activeObject_t;
+    bool_t activeObjectCreate(activeObject_t *ao, callBackActObj_t callback, TaskFunction_t taskForAO);
 
-/*=====[Prototypes (declarations) of public functions]=======================*/
+    /*===== Tarea activeObjectTask()===============================================
+     *
+     * (+) Descripci�n: Esta es la tarea asociada al objeto activo. Leer� datos de
+     * la cola del objeto y cuando los procese, se ejecutar� el callback asociado.
+     *
+     * (+) Recibe: Un puntero del tipo "void" por donde se enviar� el puntero al
+     * objeto activo.
+     *
+     * (+) Devuelve: Nada.
+     *
+     *===========================================================================*/
 
-/*===== Funci�n activeObjectCreate()===========================================
- *
- * (+) Descripci�n: Esta funci�n se encarga de crear el objeto activo; es decir,
- * crear su cola de procesamiento y su tarea asociada. Adicionalmente, se le
- * asignar� una funci�n de callback que es la que se ejecutar� en la tarea.
- *
- * (+) Recibe: Un puntero del tipo "activeObject_t" al objeto activo y el
- * evento del tipo "activeObjectEvent_t". Adicionalmente, se le debe pasar el
- * nombre de la tarea asociada al objeto activo que se va a crear, del tipo
- * "TaskFunction_t".
- *
- * (+) Devuelve: True o False dependiendo de si el objeto activo se cre�
- * correctamente o no.
- *
- *===========================================================================*/
+    void activeObjectTask(void *pvParameters);
 
-bool_t activeObjectCreate( activeObject_t* ao, callBackActObj_t callback, TaskFunction_t taskForAO );
+    /*===== Funci�n activeObjectEnqueue()==========================================
+     *
+     * (+) Descripci�n: Esta funci�n se encargar� de ingresar en la cola del objeto
+     * activo un evento que deber� procesarse.
+     *
+     * (+) Recibe: Un puntero del tipo "activeObject_t" por donde se enviar� el
+     * puntero al objeto activo y un puntero a "char" donde se le pasar� el dato a
+     * encolar.
+     *
+     * (+) Devuelve: Nada.
+     *
+     *===========================================================================*/
 
-/*===== Tarea activeObjectTask()===============================================
- *
- * (+) Descripci�n: Esta es la tarea asociada al objeto activo. Leer� datos de
- * la cola del objeto y cuando los procese, se ejecutar� el callback asociado.
- *
- * (+) Recibe: Un puntero del tipo "void" por donde se enviar� el puntero al
- * objeto activo.
- *
- * (+) Devuelve: Nada.
- *
- *===========================================================================*/
+    void activeObjectEnqueue(activeObject_t *ao, queueRecievedFrame_t *value);
+    void activeObjectEnqueueResponse(activeObject_t *ao, void *value);
+    bool_t activeObjectOperationCreate(activeObject_t *ao, callBackActObj_t callback, TaskFunction_t taskForAO, QueueHandle_t response_queue);
 
-void activeObjectTask( void* pvParameters );
+    /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 
-
-/*===== Funci�n activeObjectEnqueue()==========================================
- *
- * (+) Descripci�n: Esta funci�n se encargar� de ingresar en la cola del objeto
- * activo un evento que deber� procesarse.
- *
- * (+) Recibe: Un puntero del tipo "activeObject_t" por donde se enviar� el
- * puntero al objeto activo y un puntero a "char" donde se le pasar� el dato a
- * encolar.
- *
- * (+) Devuelve: Nada.
- *
- *===========================================================================*/
-
-void activeObjectEnqueue( activeObject_t* ao, queueRecievedFrame_t* value );
-void activeObjectEnqueueResponse( activeObject_t* ao, void* value );
-bool_t activeObjectOperationCreate( activeObject_t* ao, callBackActObj_t callback, TaskFunction_t taskForAO, QueueHandle_t response_queue );
-
-/*=====[Prototypes (declarations) of public interrupt functions]=============*/
-
-/*=====[C++ - end]===========================================================*/
+    /*=====[C++ - end]===========================================================*/
 
 #ifdef __cplusplus
 }

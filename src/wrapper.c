@@ -5,7 +5,7 @@ void initWrapper(config_t *config)
 {
     C2_init(config);
     ISR_init(config);
-    
+
     bool_t state = C3_init(config);
     // Gestion de errores
     configASSERT(state);
@@ -15,7 +15,7 @@ void initWrapper(config_t *config)
     void *Pool_puntero = pvPortMalloc(POOL_SIZE * sizeof(char));
     configASSERT(Pool_puntero != NULL);
     //	Creo el pool de memoria que va a usarse para la transmision
-    QMPool_init(&(config->poolMem), Pool_puntero, POOL_SIZE * sizeof(uint8_t), PACKET_SIZE); //Tamanio del segmento de memoria reservado
+    QMPool_init(&(config->poolMem), Pool_puntero, POOL_SIZE * sizeof(uint8_t), PACKET_SIZE); // Tamanio del segmento de memoria reservado
 }
 
 void queue_init(config_t *config)

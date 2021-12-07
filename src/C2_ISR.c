@@ -69,6 +69,7 @@ void onRx(void *param)
 			config->fsm.data.ptr = QMPool_getFromISR(&(config->poolMem), 0); // pido un bloque del pool
 			configASSERT(config->fsm.data.ptr);								 //<-- Gestion de errores
 			config->fsm.data.length = 0;
+			config->fsm.data.error = NO_ERROR;
 			config->fsm.data.ptr[config->fsm.data.length] = c;
 			config->fsm.data.length++;
 			xTimerResetFromISR(config->fsm.timeOut, &xHigherPriorityTaskWoken);
@@ -113,7 +114,7 @@ void onRx(void *param)
 				{
 					config->fsm.data.ptr[config->fsm.data.length] = c;
 					config->fsm.data.length++;
-					config->fsm.data.ptr[config->fsm.data.length - 4] = '_';
+					config->fsm.data.error = ERROR_INVALID_DATA;
 					xQueueSendFromISR(config->queueISRC3, &(config->fsm.data), &xHigherPriorityTaskWoken);
 				}
 			}
@@ -121,14 +122,14 @@ void onRx(void *param)
 			{
 				config->fsm.data.ptr[config->fsm.data.length] = c;
 				config->fsm.data.length++;
-				config->fsm.data.ptr[config->fsm.data.length - 4] = '_';
+				config->fsm.data.error = ERROR_INVALID_DATA;
 				xQueueSendFromISR(config->queueISRC3, &(config->fsm.data), &xHigherPriorityTaskWoken);
 			}
 		}
 		else
 		{
 			config->fsm.state = ISR_IDLE;
-			config->fsm.data.ptr[config->fsm.data.length] = '_';
+			config->fsm.data.error = ERROR_INVALID_DATA;
 			config->fsm.data.length = config->fsm.data.length + 4;
 			xQueueSendFromISR(config->queueISRC3, &(config->fsm.data), &xHigherPriorityTaskWoken);
 		}
@@ -144,7 +145,7 @@ void onRx(void *param)
 queueRecievedFrame_t protocol_wait_frame(config_t *config) //  == get(&objeto)
 {
 	queueRecievedFrame_t dato_rx;
-	xQueueReceive(config->queueISRC3, &dato_rx, portMAX_DELAY); //espero a que venga un bloque por la cola
+	xQueueReceive(config->queueISRC3, &dato_rx, portMAX_DELAY); // espero a que venga un bloque por la cola
 	return dato_rx;
 }
 
@@ -170,7 +171,7 @@ void onTime(TimerHandle_t xTimer)
 {
 	config_t *config = (config_t *)pvTimerGetTimerID(xTimer);
 	config->fsm.state = ISR_IDLE;
-	//QMPool_putFromISR(&(config->poolMem), config->fsm.data.ptr);
+	// QMPool_putFromISR(&(config->poolMem), config->fsm.data.ptr);
 }
 
 uint8_t ascii2hex(uint8_t *p)

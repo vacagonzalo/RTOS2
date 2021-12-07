@@ -10,24 +10,6 @@
 
 #include "AO.h"
 
-/*=====[Inclusions of private function dependencies]=========================*/
-
-/*=====[Definition macros of private constants]==============================*/
-
-/*=====[Private function-like macros]========================================*/
-
-/*=====[Definitions of private data types]===================================*/
-
-/*=====[Definitions of external public global variables]=====================*/
-
-/*=====[Definitions of public global variables]==============================*/
-
-/*=====[Definitions of private global variables]=============================*/
-
-/*=====[Prototypes (declarations) of private functions]======================*/
-
-/*=====[Implementations of public functions]=================================*/
-
 /*===== Funci�n activeObjectCreate()===========================================
  *
  * (+) Descripci�n: Esta funci�n se encarga de crear el objeto activo; es decir,
@@ -170,11 +152,12 @@ bool_t activeObjectOperationCreate(activeObject_t *ao, callBackActObj_t callback
     return activeObjectCreate(ao, callback, taskForAO);
 }
 
-void activeObjectEnqueueResponse( activeObject_t* ao, void* value )
+void activeObjectEnqueueResponse(activeObject_t *ao, void *value)
 {
     // Y lo enviamos a la cola.
-    if(xQueueSend( ao->responseQueue, value, 0 ) != pdPASS)
+    if (xQueueSend(ao->responseQueue, value, 0) != pdPASS)
     {
-		while(1);
-	}
+        while (1)
+            ;
+    }
 }

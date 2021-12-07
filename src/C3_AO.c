@@ -35,7 +35,8 @@ errorType_t digestor(queueRecievedFrame_t *dato);
 void snake_packet(activeObject_t *caller_ao, queueRecievedFrame_t *mensaje_a_procesar);
 void camel_packet(activeObject_t *caller_ao, queueRecievedFrame_t *mensaje_a_procesar);
 void pascal_packet(activeObject_t *caller_ao, queueRecievedFrame_t *mensaje_a_procesar);
-void wrong_cmd (activeObject_t *caller_ao, queueRecievedFrame_t *mensaje_a_procesar);
+void wrong_cmd(activeObject_t *caller_ao, queueRecievedFrame_t *mensaje_a_procesar);
+void wrong_data(activeObject_t *caller_ao, queueRecievedFrame_t *mensaje_a_procesar);
 void C2ToOA_task(void *param);
 void OAToC2_task(void *param);
 
@@ -90,20 +91,34 @@ void C2ToOA_task(void *param)
     activeObject_t wrongCmd;
     wrongCmd.itIsAlive = FALSE;
 
+    activeObject_t wrongData;
+    wrongData.itIsAlive = FALSE;
+
     while (TRUE)
     {
 
-        xQueueReceive(config->queueISRC3, &dato, portMAX_DELAY); //espero a que venga un bloque por la cola
+        xQueueReceive(config->queueISRC3, &dato, portMAX_DELAY); // espero a que venga un bloque por la cola
 
-        if (dato.ptr != NULL) //si recibo null es porque ocurrio un error en la comunicacion
+        if (dato.ptr != NULL) // si recibo null es porque ocurrio un error en la comunicacion
         {
-            
-            if (dato.ptr[CMD_BYTE] == 'S') /* EVENT deberia ser S, C o P */
+
+            if (dato.error == ERROR_INVALID_DATA)
+            {
+                if (wrongData.itIsAlive == FALSE)
+                {
+                    // Se crea el objeto activo, con el comando correspondiente y tarea asociada.
+                    activeObjectOperationCreate(&wrongData, (callBackActObj_t)wrong_data, activeObjectTask, response_queue);
+                }
+
+                // Y enviamos el dato a la cola para procesar.
+                activeObjectEnqueue(&wrongData, &dato);
+            }
+            else if (dato.ptr[CMD_BYTE] == 'S') /* EVENT deberia ser S, C o P */
             {
                 if (snakeCase.itIsAlive == FALSE)
                 {
                     // Se crea el objeto activo, con el comando correspondiente y tarea asociada.
-                    activeObjectOperationCreate(&snakeCase, (callBackActObj_t) snake_packet, activeObjectTask, response_queue);
+                    activeObjectOperationCreate(&snakeCase, (callBackActObj_t)snake_packet, activeObjectTask, response_queue);
                 }
 
                 // Y enviamos el dato a la cola para procesar.
@@ -114,7 +129,7 @@ void C2ToOA_task(void *param)
                 if (camelCase.itIsAlive == FALSE)
                 {
                     // Se crea el objeto activo, con el comando correspondiente y tarea asociada.
-                    activeObjectOperationCreate(&camelCase, (callBackActObj_t) camel_packet, activeObjectTask, response_queue);
+                    activeObjectOperationCreate(&camelCase, (callBackActObj_t)camel_packet, activeObjectTask, response_queue);
                 }
 
                 // Y enviamos el dato a la cola para procesar.
@@ -125,22 +140,22 @@ void C2ToOA_task(void *param)
                 if (pascalCase.itIsAlive == FALSE)
                 {
                     // Se crea el objeto activo, con el comando correspondiente y tarea asociada.
-                    activeObjectOperationCreate(&pascalCase, (callBackActObj_t) pascal_packet, activeObjectTask, response_queue);
+                    activeObjectOperationCreate(&pascalCase, (callBackActObj_t)pascal_packet, activeObjectTask, response_queue);
                 }
 
                 // Y enviamos el dato a la cola para procesar.
                 activeObjectEnqueue(&pascalCase, &dato);
             }
-            else
+            else // Wrong OPCODE
             {
-            	if (wrongCmd.itIsAlive == FALSE)
-				{
-					// Se crea el objeto activo, con el comando correspondiente y tarea asociada.
-					activeObjectOperationCreate(&wrongCmd, (callBackActObj_t) wrong_cmd, activeObjectTask, response_queue);
-				}
+                if (wrongCmd.itIsAlive == FALSE)
+                {
+                    // Se crea el objeto activo, con el comando correspondiente y tarea asociada.
+                    activeObjectOperationCreate(&wrongCmd, (callBackActObj_t)wrong_cmd, activeObjectTask, response_queue);
+                }
 
-				// Y enviamos el dato a la cola para procesar.
-				activeObjectEnqueue(&wrongCmd, &dato);
+                // Y enviamos el dato a la cola para procesar.
+                activeObjectEnqueue(&wrongCmd, &dato);
             }
         }
     }
@@ -150,7 +165,7 @@ void OAToC2_task(void *param)
 {
     config_t *config = (config_t *)param;
 
-    queueRecievedFrame_t * datosC3C2;
+    queueRecievedFrame_t *datosC3C2;
 
     while (TRUE)
     {
@@ -162,12 +177,22 @@ void OAToC2_task(void *param)
     }
 }
 
-void wrong_cmd (activeObject_t *caller_ao, queueRecievedFrame_t *mensaje_a_procesar)
+void wrong_cmd(activeObject_t *caller_ao, queueRecievedFrame_t *mensaje_a_procesar)
 {
     queueRecievedFrame_t *msgProcess = (queueRecievedFrame_t *)mensaje_a_procesar;
 
-        msgProcess->length = (OFFSET_ID + COM_DATA_ERROR + FRAME_CRCEOF_LENGTH);
-        memcpy(msgProcess->ptr + OFFSET_ID, "E01", COM_DATA_ERROR);
+    msgProcess->length = (OFFSET_ID + COM_DATA_ERROR + FRAME_CRCEOF_LENGTH);
+    memcpy(msgProcess->ptr + OFFSET_ID, "E01", COM_DATA_ERROR);
+
+    xQueueSend(response_queue, &msgProcess, 0);
+}
+
+void wrong_data(activeObject_t *caller_ao, queueRecievedFrame_t *mensaje_a_procesar)
+{
+    queueRecievedFrame_t *msgProcess = (queueRecievedFrame_t *)mensaje_a_procesar;
+
+    msgProcess->length = (OFFSET_ID + COM_DATA_ERROR + FRAME_CRCEOF_LENGTH);
+    memcpy(msgProcess->ptr + OFFSET_ID, "E00", COM_DATA_ERROR);
 
     xQueueSend(response_queue, &msgProcess, 0);
 }
@@ -251,7 +276,7 @@ void camel_packet(activeObject_t *caller_ao, queueRecievedFrame_t *mensaje_a_pro
     }
     case ERROR_INVALID_DATA:
     {
-    	msgProcess->length = (OFFSET_ID + COM_DATA_ERROR + FRAME_CRCEOF_LENGTH);
+        msgProcess->length = (OFFSET_ID + COM_DATA_ERROR + FRAME_CRCEOF_LENGTH);
         memcpy(msgProcess->ptr + OFFSET_ID, "E00", COM_DATA_ERROR);
         break;
     }
@@ -296,8 +321,8 @@ void pascal_packet(activeObject_t *caller_ao, queueRecievedFrame_t *mensaje_a_pr
         break;
     case ERROR_INVALID_DATA:
     {
-    	msgProcess->length = (OFFSET_ID + COM_DATA_ERROR + FRAME_CRCEOF_LENGTH);
-    	memcpy(msgProcess->ptr + OFFSET_ID, "E00", COM_DATA_ERROR);
+        msgProcess->length = (OFFSET_ID + COM_DATA_ERROR + FRAME_CRCEOF_LENGTH);
+        memcpy(msgProcess->ptr + OFFSET_ID, "E00", COM_DATA_ERROR);
         break;
     }
     default:

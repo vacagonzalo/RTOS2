@@ -27,11 +27,12 @@
 #include <inttypes.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-uint8_t crc8_init(void);
-uint8_t crc8_calc(uint8_t val, void *buf, uint32_t cnt);
+    uint8_t crc8_init(void);
+    uint8_t crc8_calc(uint8_t val, void *buf, uint32_t cnt);
 
 #ifdef __cplusplus
 }

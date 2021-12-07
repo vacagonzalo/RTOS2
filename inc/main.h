@@ -18,20 +18,21 @@
 /*=====[C++ - begin]=========================================================*/
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/*=====[Definition macros of public constants]===============================*/
+    /*=====[Definition macros of public constants]===============================*/
 
-/*=====[Public function-like macros]=========================================*/
+    /*=====[Public function-like macros]=========================================*/
 
-/*=====[Definitions of public data types]====================================*/
+    /*=====[Definitions of public data types]====================================*/
 
-/*=====[Prototypes (declarations) of public functions]=======================*/
+    /*=====[Prototypes (declarations) of public functions]=======================*/
 
-/*=====[Prototypes (declarations) of public interrupt functions]=============*/
+    /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 
-/*=====[C++ - end]===========================================================*/
+    /*=====[C++ - end]===========================================================*/
 
 #ifdef __cplusplus
 }

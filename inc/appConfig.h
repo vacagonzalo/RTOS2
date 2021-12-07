@@ -31,7 +31,7 @@ extern "C"
 #define UARTS_TO_USE 1
 #define PACKET_SIZE FRAME_MAX_LENGTH + 1         // Tamanio del paquete
 #define POOL_TOTAL_BLOCKS 28                     // Cuantos paquetes
-#define POOL_SIZE POOL_TOTAL_BLOCKS *PACKET_SIZE //Tamanio total del pool
+#define POOL_SIZE POOL_TOTAL_BLOCKS *PACKET_SIZE // Tamanio total del pool
 #define TIMEOUT_PERIOD 4
 #define TIMEOUT_PERIOD_TICKS pdMS_TO_TICKS(TIMEOUT_PERIOD)
 
@@ -49,8 +49,8 @@ extern "C"
 #define MAX_NUMBER_OF_WORDS 15
 #define MAX_NUMBER_OF_LETTERS 10
 
-#define PROCESS_FRAME_QUEUE_SIZE (POOL_TOTAL_BLOCKS-3)/2
-#define TRANSMIT_FRAME_QUEUE_SIZE (POOL_TOTAL_BLOCKS-3)/2
+#define PROCESS_FRAME_QUEUE_SIZE (POOL_TOTAL_BLOCKS - 3) / 2
+#define TRANSMIT_FRAME_QUEUE_SIZE (POOL_TOTAL_BLOCKS - 3) / 2
 
     /*=====[Definitions of public data types]====================================*/
 

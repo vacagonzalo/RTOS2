@@ -19,8 +19,17 @@ typedef enum
     ISR_ACQUIRING
 } ISR_states_t;
 
+typedef enum
+{
+    ERROR_INVALID_DATA,
+    ERROR_INVALID_OPCODE,
+    ERROR_SYSTEM,
+    NO_ERROR
+} errorType_t;
+
 typedef struct
 {
+    errorType_t error;
     uint32_t index;
     uint8_t length;
     uint8_t *ptr;
@@ -41,17 +50,9 @@ typedef struct
     QueueHandle_t queueISRC3;
     QueueHandle_t queueC3C2;
     SemaphoreHandle_t semphrC2ISR;
-    QMPool poolMem; //memory pool (contienen la informacion que necesita la biblioteca qmpool.h)
+    QMPool poolMem; // memory pool (contienen la informacion que necesita la biblioteca qmpool.h)
     ISR_FSM_t fsm;
 } config_t;
-
-typedef enum
-{
-    ERROR_INVALID_DATA,
-    ERROR_INVALID_OPCODE,
-    ERROR_SYSTEM,
-    NO_ERROR
-} errorType_t;
 
 /*=====[Prototypes (declarations) of public functions]=======================*/
 
