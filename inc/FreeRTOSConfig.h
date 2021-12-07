@@ -29,16 +29,16 @@
 #include <chip.h>
 
 /*-----------------------------------------------------------
-* Application specific definitions.
-*
-* These definitions should be adjusted for your particular hardware and
-* application requirements.
-*
-* THESE PARAMETERS ARE DESCRIBED WITHIN THE 'CONFIGURATION' SECTION OF THE
-* FreeRTOS API DOCUMENTATION AVAILABLE ON THE FreeRTOS.org WEB SITE.
-*
-* See http://www.freertos.org/a00110.html.
-*----------------------------------------------------------*/
+ * Application specific definitions.
+ *
+ * These definitions should be adjusted for your particular hardware and
+ * application requirements.
+ *
+ * THESE PARAMETERS ARE DESCRIBED WITHIN THE 'CONFIGURATION' SECTION OF THE
+ * FreeRTOS API DOCUMENTATION AVAILABLE ON THE FreeRTOS.org WEB SITE.
+ *
+ * See http://www.freertos.org/a00110.html.
+ *----------------------------------------------------------*/
 
 /* Ensure stdint is only used by the compiler, and not the assembler. */
 #if defined(__ICCARM__) || defined(__ARMCC_VERSION)
@@ -91,7 +91,7 @@ extern int DbgConsole_Printf(const char *fmt_s, ...);
  * to exclude the API function. */
 #define INCLUDE_vTaskPrioritySet 0
 #define INCLUDE_uxTaskPriorityGet 0
-#define INCLUDE_vTaskDelete 0
+#define INCLUDE_vTaskDelete 1
 #define INCLUDE_vTaskCleanUpResources 0
 #define INCLUDE_vTaskSuspend 0
 #define INCLUDE_vTaskDelayUntil 1
@@ -119,7 +119,7 @@ extern int DbgConsole_Printf(const char *fmt_s, ...);
 #define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 5
 
 /* Interrupt priorities used by the kernel port layer itself.  These are generic
-* to all Cortex-M ports, and do not rely on any particular library functions. */
+ * to all Cortex-M ports, and do not rely on any particular library functions. */
 #define configKERNEL_INTERRUPT_PRIORITY (configLIBRARY_LOWEST_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
 
 /* !!!! configMAX_SYSCALL_INTERRUPT_PRIORITY must not be set to zero !!!!

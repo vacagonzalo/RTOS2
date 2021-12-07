@@ -30,21 +30,13 @@
 #define FRAME_MINIMUN_VALID_LENGTH 9
 #define VALID_ID_CHAR (c >= 'A' && c <= 'F') || (c >= '0' && c <= '9')
 #define ID_LOCATION 5
-#define VALID_CRC_CHAR1 ((config->fsm.pktRecieved[config->fsm.countChars - 2] >= 'A' && config->fsm.pktRecieved[config->fsm.countChars - 2] <= 'F') || (config->fsm.pktRecieved[config->fsm.countChars - 2] >= '0' && config->fsm.pktRecieved[config->fsm.countChars - 2] <= '9'))
-#define VALID_CRC_CHAR2 ((config->fsm.pktRecieved[config->fsm.countChars - 1] >= 'A' && config->fsm.pktRecieved[config->fsm.countChars - 1] <= 'F') || (config->fsm.pktRecieved[config->fsm.countChars - 1] >= '0' && config->fsm.pktRecieved[config->fsm.countChars - 1] <= '9'))
+#define VALID_CRC_CHAR1 ((config->fsm.data.ptr[config->fsm.data.length - 2] >= 'A' && config->fsm.data.ptr[config->fsm.data.length - 2] <= 'F') || (config->fsm.data.ptr[config->fsm.data.length - 2] >= '0' && config->fsm.data.ptr[config->fsm.data.length - 2] <= '9'))
+#define VALID_CRC_CHAR2 ((config->fsm.data.ptr[config->fsm.data.length - 1] >= 'A' && config->fsm.data.ptr[config->fsm.data.length - 1] <= 'F') || (config->fsm.data.ptr[config->fsm.data.length - 1] >= '0' && config->fsm.data.ptr[config->fsm.data.length - 1] <= '9'))
 
 void onRx(void *param);
 void uartUsbSendCallback(void *param);
 void onTime(TimerHandle_t xTimer);
 uint8_t ascii2hex(uint8_t *p);
-
-/*
-   	   UART_GPIO = 0, // Hardware UART0 via GPIO1(TX), GPIO2(RX) pins on header P0
-	   UART_485  = 1, // Hardware UART0 via RS_485 A, B and GND Borns
-	   UART_USB  = 3, // Hardware UART2 via USB DEBUG port
-	   UART_ENET = 4, // Hardware UART2 via ENET_RXD0(TX), ENET_CRS_DV(RX) pins on header P0
-	   UART_232  = 5, // Hardware UART3 via 232_RX and 232_tx pins on header P1
-*/
 
 uint8_t *pDataToSend;
 
@@ -73,60 +65,88 @@ void onRx(void *param)
 		if (FRAME_START)
 		{
 			config->fsm.state = ISR_ACQUIRING;
-			config->fsm.countChars = 0;
-			config->fsm.pktRecieved[config->fsm.countChars] = c;
-			config->fsm.countChars++;
+			// Pedido de memoria al Pool
+			config->fsm.data.ptr = QMPool_getFromISR(&(config->poolMem), 0); // pido un bloque del pool
+			configASSERT(config->fsm.data.ptr);								 //<-- Gestion de errores
+			config->fsm.data.length = 0;
+			config->fsm.data.error = NO_ERROR;
+			config->fsm.data.ptr[config->fsm.data.length] = c;
+			config->fsm.data.length++;
 			xTimerResetFromISR(config->fsm.timeOut, &xHigherPriorityTaskWoken);
 		}
 		break;
 	case ISR_ACQUIRING:
 		if (VALID_CHAR)
 		{
-			config->fsm.pktRecieved[config->fsm.countChars] = c;
-			config->fsm.countChars++;
-			if ((config->fsm.countChars == FRAME_MAX_LENGTH) ||
-				(!(VALID_ID_CHAR) && config->fsm.countChars < ID_LOCATION))
+			config->fsm.data.ptr[config->fsm.data.length] = c;
+			config->fsm.data.length++;
+			if ((config->fsm.data.length == FRAME_MAX_LENGTH) ||
+				(!(VALID_ID_CHAR) && config->fsm.data.length < ID_LOCATION))
 			{
 				config->fsm.state = ISR_IDLE;
+				// Libero el bloque de memoria que ya fue trasmitido
+				QMPool_putFromISR(&(config->poolMem), config->fsm.data.ptr);
 			}
 			xTimerResetFromISR(config->fsm.timeOut, &xHigherPriorityTaskWoken);
 		}
 		else if (FRAME_START)
 		{
-			config->fsm.countChars = 1;
+			config->fsm.data.length = 1;
 			xTimerResetFromISR(config->fsm.timeOut, &xHigherPriorityTaskWoken);
 		}
 		else if (END_FRAME)
 		{
 			config->fsm.state = ISR_IDLE;
-			if ((config->fsm.countChars > FRAME_MINIMUN_VALID_LENGTH - 1) &&
+			if ((config->fsm.data.length > FRAME_MINIMUN_VALID_LENGTH - 1) &&
 				(VALID_CRC_CHAR1) && (VALID_CRC_CHAR2))
 			{
 				// CRC Check
-				uint8_t crcCalc = crc8_calc(crc8_init(), config->fsm.pktRecieved + OFFSET_SOF, config->fsm.countChars - OFFSET_CRC - OFFSET_SOF);
-				uint8_t crcRecieved = ascii2hex(config->fsm.pktRecieved + config->fsm.countChars - OFFSET_CRC);
+				uint8_t crcCalc = crc8_calc(crc8_init(), config->fsm.data.ptr + OFFSET_SOF, config->fsm.data.length - OFFSET_CRC - OFFSET_SOF);
+				uint8_t crcRecieved = ascii2hex(config->fsm.data.ptr + config->fsm.data.length - OFFSET_CRC);
 				if (crcCalc == crcRecieved)
 				{
 					// Mandar la cola de mensajes
-					config->fsm.pktRecieved[config->fsm.countChars] = c;
-					config->fsm.countChars++;
-					config->fsm.pktRecieved[FRAME_MAX_LENGTH] = config->fsm.countChars;
-					xQueueSendFromISR(config->queueISRC2, config->fsm.pktRecieved, &xHigherPriorityTaskWoken);
+					config->fsm.data.ptr[config->fsm.data.length] = c;
+					config->fsm.data.length++;
+					xQueueSendFromISR(config->queueISRC3, &(config->fsm.data), &xHigherPriorityTaskWoken);
 				}
+				else
+				{
+					config->fsm.data.ptr[config->fsm.data.length] = c;
+					config->fsm.data.length++;
+					config->fsm.data.error = ERROR_INVALID_DATA;
+					xQueueSendFromISR(config->queueISRC3, &(config->fsm.data), &xHigherPriorityTaskWoken);
+				}
+			}
+			else
+			{
+				config->fsm.data.ptr[config->fsm.data.length] = c;
+				config->fsm.data.length++;
+				config->fsm.data.error = ERROR_INVALID_DATA;
+				xQueueSendFromISR(config->queueISRC3, &(config->fsm.data), &xHigherPriorityTaskWoken);
 			}
 		}
 		else
 		{
 			config->fsm.state = ISR_IDLE;
-			config->fsm.pktRecieved[config->fsm.countChars] = '_';
-			config->fsm.pktRecieved[FRAME_MAX_LENGTH] = config->fsm.countChars + 4;
-			xQueueSendFromISR(config->queueISRC2, config->fsm.pktRecieved, &xHigherPriorityTaskWoken);
+			config->fsm.data.error = ERROR_INVALID_DATA;
+			config->fsm.data.length = config->fsm.data.length + 4;
+			xQueueSendFromISR(config->queueISRC3, &(config->fsm.data), &xHigherPriorityTaskWoken);
 		}
 		break;
 	default:
 		config->fsm.state = ISR_IDLE;
+		// Libero el bloque de memoria que ya fue trasmitido
+		QMPool_putFromISR(&(config->poolMem), config->fsm.data.ptr);
 		break;
 	}
+}
+
+queueRecievedFrame_t protocol_wait_frame(config_t *config) //  == get(&objeto)
+{
+	queueRecievedFrame_t dato_rx;
+	xQueueReceive(config->queueISRC3, &dato_rx, portMAX_DELAY); // espero a que venga un bloque por la cola
+	return dato_rx;
 }
 
 // Envio a la PC desde la UART hasta NULL y deshabilito Callback
@@ -151,6 +171,7 @@ void onTime(TimerHandle_t xTimer)
 {
 	config_t *config = (config_t *)pvTimerGetTimerID(xTimer);
 	config->fsm.state = ISR_IDLE;
+	// QMPool_putFromISR(&(config->poolMem), config->fsm.data.ptr);
 }
 
 uint8_t ascii2hex(uint8_t *p)

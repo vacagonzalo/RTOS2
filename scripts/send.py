@@ -3,7 +3,7 @@ import time
 
 
 def main():
-    with Serial('/dev/ttyUSB1', 115200) as s:
+    with Serial('/dev/ttyUSB2', 115200) as s:
         indice = 0
         #for indice in range(100):
         #    #Paquete correcto 1
@@ -19,7 +19,7 @@ def main():
         res = s.read_all()
         print(res)
         s.write(b'(0000Pq_unyjqyjj_x_nnb')
-        time.sleep(0.005)
+        time.sleep(0.006)
         s.write(b'uuwqjsl_lkmkzcej_wmtuqow4E)')
         time.sleep(0.1)
         res = s.read_all()

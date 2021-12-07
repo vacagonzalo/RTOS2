@@ -19,34 +19,6 @@ typedef enum
     ISR_ACQUIRING
 } ISR_states_t;
 
-typedef struct
-{
-    ISR_states_t state;
-    uint8_t countChars;
-    uint8_t pktRecieved[FRAME_MAX_LENGTH + 1];
-    TimerHandle_t timeOut;
-} ISR_FSM_t;
-
-typedef struct
-{
-    uartMap_t uart;
-    uint32_t baud;
-    uint32_t index;
-    QueueHandle_t queueISRC2;
-    QueueHandle_t queueC2C3;
-    QueueHandle_t queueC3C2;
-    SemaphoreHandle_t semphrC2ISR;
-    QMPool poolMem; //memory pool (contienen la informacion que necesita la biblioteca qmpool.h)
-    ISR_FSM_t fsm;
-} config_t;
-
-typedef struct
-{
-    uint32_t index;
-    uint8_t length;
-    uint8_t *ptr;
-} queueRecievedFrame_t;
-
 typedef enum
 {
     ERROR_INVALID_DATA,
@@ -55,12 +27,40 @@ typedef enum
     NO_ERROR
 } errorType_t;
 
+typedef struct
+{
+    errorType_t error;
+    uint32_t index;
+    uint8_t length;
+    uint8_t *ptr;
+} queueRecievedFrame_t;
+
+typedef struct
+{
+    ISR_states_t state;
+    queueRecievedFrame_t data;
+    TimerHandle_t timeOut;
+} ISR_FSM_t;
+
+typedef struct
+{
+    uartMap_t uart;
+    uint32_t baud;
+    uint32_t index;
+    QueueHandle_t queueISRC3;
+    QueueHandle_t queueC3C2;
+    SemaphoreHandle_t semphrC2ISR;
+    QMPool poolMem; // memory pool (contienen la informacion que necesita la biblioteca qmpool.h)
+    ISR_FSM_t fsm;
+} config_t;
+
 /*=====[Prototypes (declarations) of public functions]=======================*/
 
 void queue_init(config_t *config);
 void ISR_init(config_t *config);
 void C2_init(config_t *config);
-void C3_init(config_t *config);
+queueRecievedFrame_t protocol_wait_frame(config_t *config);
+bool_t C3_init(config_t *config);
 void initWrapper(config_t *config);
 
 #endif /* __WRAPPER_H__ */

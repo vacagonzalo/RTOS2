@@ -1,7 +1,7 @@
 # Compile options
 
 VERBOSE=n
-OPT=g
+OPT=2
 USE_NANO=y
 SEMIHOST=n
 USE_FPU=y
