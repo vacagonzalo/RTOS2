@@ -99,6 +99,7 @@ void C2ToOA_task(void *param)
 
         xQueueReceive(config->queueISRC3, &dato, portMAX_DELAY); // espero a que venga un bloque por la cola
 
+        bool_t res;
         if (dato.ptr != NULL) // si recibo null es porque ocurrio un error en la comunicacion
         {
 
@@ -107,29 +108,35 @@ void C2ToOA_task(void *param)
                 if (wrongData.itIsAlive == FALSE)
                 {
                     // Se crea el objeto activo, con el comando correspondiente y tarea asociada.
-                    activeObjectOperationCreate(&wrongData, (callBackActObj_t)wrong_data, activeObjectTask, response_queue);
+                    res = activeObjectOperationCreate(&wrongData, (callBackActObj_t)wrong_data, activeObjectTask, response_queue);
                 }
 
-                // Y enviamos el dato a la cola para procesar.
-                activeObjectEnqueue(&wrongData, &dato);
+                if (res)
+                {
+                    // Y enviamos el dato a la cola para procesar.
+                    activeObjectEnqueue(&wrongData, &dato);
+                }
             }
             else if (dato.ptr[CMD_BYTE] == 'S') /* EVENT deberia ser S, C o P */
             {
                 if (snakeCase.itIsAlive == FALSE)
                 {
                     // Se crea el objeto activo, con el comando correspondiente y tarea asociada.
-                    activeObjectOperationCreate(&snakeCase, (callBackActObj_t)snake_packet, activeObjectTask, response_queue);
+                    res = activeObjectOperationCreate(&snakeCase, (callBackActObj_t)snake_packet, activeObjectTask, response_queue);
                 }
 
-                // Y enviamos el dato a la cola para procesar.
-                activeObjectEnqueue(&snakeCase, &dato);
+                if (res)
+                {
+                    // Y enviamos el dato a la cola para procesar.
+                    activeObjectEnqueue(&snakeCase, &dato);
+                }
             }
             else if (dato.ptr[CMD_BYTE] == 'C')
             {
                 if (camelCase.itIsAlive == FALSE)
                 {
                     // Se crea el objeto activo, con el comando correspondiente y tarea asociada.
-                    activeObjectOperationCreate(&camelCase, (callBackActObj_t)camel_packet, activeObjectTask, response_queue);
+                    res = activeObjectOperationCreate(&camelCase, (callBackActObj_t)camel_packet, activeObjectTask, response_queue);
                 }
 
                 // Y enviamos el dato a la cola para procesar.
@@ -140,22 +147,35 @@ void C2ToOA_task(void *param)
                 if (pascalCase.itIsAlive == FALSE)
                 {
                     // Se crea el objeto activo, con el comando correspondiente y tarea asociada.
-                    activeObjectOperationCreate(&pascalCase, (callBackActObj_t)pascal_packet, activeObjectTask, response_queue);
+                    res = activeObjectOperationCreate(&pascalCase, (callBackActObj_t)pascal_packet, activeObjectTask, response_queue);
                 }
-
-                // Y enviamos el dato a la cola para procesar.
-                activeObjectEnqueue(&pascalCase, &dato);
+                if (res)
+                {
+                    // Y enviamos el dato a la cola para procesar.
+                    activeObjectEnqueue(&pascalCase, &dato);
+                }
             }
             else // Wrong OPCODE
             {
                 if (wrongCmd.itIsAlive == FALSE)
                 {
                     // Se crea el objeto activo, con el comando correspondiente y tarea asociada.
-                    activeObjectOperationCreate(&wrongCmd, (callBackActObj_t)wrong_cmd, activeObjectTask, response_queue);
+                    res = activeObjectOperationCreate(&wrongCmd, (callBackActObj_t)wrong_cmd, activeObjectTask, response_queue);
                 }
 
-                // Y enviamos el dato a la cola para procesar.
-                activeObjectEnqueue(&wrongCmd, &dato);
+                if (res)
+                {
+                    // Y enviamos el dato a la cola para procesar.
+                    activeObjectEnqueue(&wrongCmd, &dato);
+                }
+            }
+
+            if (!res)
+            {
+                dato.error = ERROR_SYSTEM;
+                dato.length = (OFFSET_ID + COM_DATA_ERROR + FRAME_CRCEOF_LENGTH);
+                memcpy(dato.ptr + OFFSET_ID, "E02", COM_DATA_ERROR);
+                xQueueSend(response_queue, &dato, 0);
             }
         }
     }
